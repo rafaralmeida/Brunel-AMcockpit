@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Brunel Cockpit</title>
 
-<!-- ═══════════════════════════════════════════
-     CDN DEPENDENCIES
-═══════════════════════════════════════════ -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -16,15 +13,10 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 
 <style>
-/* ═══════════════════════════════════════════
-   CSS VARIABLES — TEMA CLARO E ESCURO
-═══════════════════════════════════════════ */
 :root {
   --yellow: #FFFF00;
   --yellow-dim: #CCCC00;
   --yellow-soft: rgba(255,255,0,0.12);
-
-  /* Dark theme (default) */
   --bg-base:    #0d0d0d;
   --bg-surface: #161616;
   --bg-card:    #1e1e1e;
@@ -42,7 +34,6 @@
   --red:        #ef4444;
   --blue:       #3b82f6;
 }
-
 [data-theme="light"] {
   --bg-base:    #f4f4f4;
   --bg-surface: #ffffff;
@@ -55,86 +46,50 @@
   --text-muted: #999999;
   --shadow:     0 2px 12px rgba(0,0,0,0.1);
 }
-
-/* ═══════════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg-base); color: var(--text-main); font-size: 14px; }
 button { cursor: pointer; font-family: inherit; }
 input, textarea, select { font-family: inherit; }
 a { color: var(--yellow); text-decoration: none; }
 ul { list-style: none; }
-
-/* scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-/* ═══════════════════════════════════════════
-   LOGIN SCREEN
-═══════════════════════════════════════════ */
 #login-screen {
   position: fixed; inset: 0; z-index: 9999;
   display: flex; align-items: center; justify-content: center;
   background: var(--bg-base);
 }
 .login-box {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 40px 36px;
-  width: 360px;
-  box-shadow: var(--shadow);
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 40px 36px; width: 360px; box-shadow: var(--shadow);
 }
-.login-logo {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 32px;
-}
+.login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
 .login-logo .logo-mark {
-  width: 36px; height: 36px;
-  background: var(--yellow);
-  border-radius: 6px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 18px; color: #000;
+  width: 36px; height: 36px; background: var(--yellow); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #000;
 }
 .login-logo span { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
 .login-box h2 { font-size: 15px; font-weight: 600; margin-bottom: 20px; color: var(--text-sub); }
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-sub); margin-bottom: 6px; }
 .form-group input, .form-group select, .form-group textarea {
-  width: 100%; padding: 10px 12px;
-  background: var(--bg-input); border: 1px solid var(--border);
-  border-radius: var(--radius); color: var(--text-main); font-size: 14px;
-  outline: none; transition: border-color 0.2s;
+  width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-main); font-size: 14px; outline: none; transition: border-color 0.2s;
 }
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  border-color: var(--yellow);
-}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--yellow); }
 .form-group select option { background: var(--bg-card); }
 .btn-primary {
-  width: 100%; padding: 11px;
-  background: var(--yellow); color: #000;
-  font-weight: 700; font-size: 14px;
-  border: none; border-radius: var(--radius);
-  transition: opacity 0.2s;
+  width: 100%; padding: 11px; background: var(--yellow); color: #000;
+  font-weight: 700; font-size: 14px; border: none; border-radius: var(--radius); transition: opacity 0.2s;
 }
 .btn-primary:hover { opacity: 0.88; }
 .login-error { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; }
-
-/* ═══════════════════════════════════════════
-   APP SHELL
-═══════════════════════════════════════════ */
 #app { display: none; height: 100vh; flex-direction: column; }
 #app.visible { display: flex; }
-
-/* Header */
 #header {
-  height: var(--header-h);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center;
-  padding: 0 20px; gap: 16px;
+  height: var(--header-h); background: var(--bg-surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 16px;
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
 }
 .header-logo { display: flex; align-items: center; gap: 8px; width: var(--sidebar-w); }
@@ -145,53 +100,27 @@ ul { list-style: none; }
 .header-user strong { color: var(--text-main); }
 .icon-btn { background: none; border: none; color: var(--text-sub); padding: 6px; border-radius: 6px; transition: all 0.15s; display: flex; align-items: center; }
 .icon-btn:hover { background: var(--bg-hover); color: var(--text-main); }
-
-/* Body layout */
 #body { display: flex; margin-top: var(--header-h); height: calc(100vh - var(--header-h)); }
-
-/* Sidebar */
 #sidebar {
-  width: var(--sidebar-w);
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  position: fixed; top: var(--header-h); bottom: 0; left: 0;
-  z-index: 90; overflow-y: auto;
-  padding: 12px 0;
+  width: var(--sidebar-w); background: var(--bg-surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: fixed; top: var(--header-h); bottom: 0; left: 0;
+  z-index: 90; overflow-y: auto; padding: 12px 0;
 }
 .nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px; color: var(--text-sub);
-  border: none; background: none; width: 100%;
-  text-align: left; font-size: 13px; font-weight: 500;
-  border-left: 3px solid transparent;
-  transition: all 0.15s; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: var(--text-sub);
+  border: none; background: none; width: 100%; text-align: left; font-size: 13px; font-weight: 500;
+  border-left: 3px solid transparent; transition: all 0.15s; cursor: pointer;
 }
 .nav-item:hover { background: var(--bg-hover); color: var(--text-main); }
 .nav-item.active { color: var(--yellow); border-left-color: var(--yellow); background: var(--yellow-soft); }
 .nav-item i { width: 16px; text-align: center; }
-
-/* Main content */
-#main {
-  margin-left: var(--sidebar-w);
-  flex: 1; overflow-y: auto;
-  padding: 24px;
-}
-
-/* ═══════════════════════════════════════════
-   TABS (pages)
-═══════════════════════════════════════════ */
+#main { margin-left: var(--sidebar-w); flex: 1; overflow-y: auto; padding: 24px; }
 .tab-page { display: none; animation: fadeIn 0.2s ease; }
 .tab-page.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-
-/* ═══════════════════════════════════════════
-   COMMON COMPONENTS
-═══════════════════════════════════════════ */
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .page-title { font-size: 20px; font-weight: 700; }
 .page-subtitle { font-size: 13px; color: var(--text-sub); margin-top: 2px; }
-
 .btn { padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 600; border: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
 .btn-yellow { background: var(--yellow); color: #000; }
 .btn-yellow:hover { opacity: 0.88; }
@@ -201,102 +130,54 @@ ul { list-style: none; }
 .btn-danger:hover { opacity: 0.88; }
 .btn-sm { padding: 5px 10px; font-size: 12px; }
 .btn-green { background: var(--green); color: #fff; }
-
 .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
 .card + .card { margin-top: 12px; }
-
 .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
 th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-sub); background: var(--bg-surface); }
 tr:hover td { background: var(--bg-hover); }
 .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; overflow-x: auto; }
-
-/* Modal */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
-  display: none; align-items: center; justify-content: center; padding: 20px;
-}
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
 .modal-overlay.open { display: flex; }
-.modal {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 12px; width: 100%; max-width: 560px;
-  max-height: 90vh; overflow-y: auto; padding: 28px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-}
+.modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
 .modal-lg { max-width: 860px; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .modal-title { font-size: 17px; font-weight: 700; }
 .modal-close { background: none; border: none; color: var(--text-sub); font-size: 20px; cursor: pointer; line-height: 1; }
 .modal-close:hover { color: var(--text-main); }
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
-
 .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-sub); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-
 input[type="checkbox"] { accent-color: var(--yellow); width: 15px; height: 15px; }
-
-/* Toast */
 #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
-.toast {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 12px 16px; min-width: 260px;
-  display: flex; align-items: center; gap: 10px; font-size: 13px;
-  box-shadow: var(--shadow); animation: slideUp 0.3s ease;
-}
+.toast { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 260px; display: flex; align-items: center; gap: 10px; font-size: 13px; box-shadow: var(--shadow); animation: slideUp 0.3s ease; }
 .toast.success { border-left: 3px solid var(--green); }
 .toast.error { border-left: 3px solid var(--red); }
 .toast.info { border-left: 3px solid var(--yellow); }
 @keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
-
-/* Loading overlay */
-#loading {
-  position: fixed; inset: 0; background: var(--bg-base);
-  z-index: 9998; display: flex; align-items: center; justify-content: center;
-  flex-direction: column; gap: 16px;
-}
+#loading { position: fixed; inset: 0; background: var(--bg-base); z-index: 9998; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
 .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* ═══════════════════════════════════════════
-   CONTAS
-═══════════════════════════════════════════ */
 .account-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-.account-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px; cursor: pointer;
-  transition: all 0.15s; border-left: 3px solid var(--yellow);
-}
+.account-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.15s; border-left: 3px solid var(--yellow); }
 .account-card:hover { border-color: var(--yellow); transform: translateY(-2px); box-shadow: var(--shadow); }
 .account-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
 .account-card .cnpj { font-size: 12px; color: var(--text-sub); font-family: monospace; }
 .account-card .area { font-size: 11px; margin-top: 8px; }
-
-/* Account detail */
 #account-detail { display: none; }
 #account-detail.active { display: block; }
 .detail-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
 .detail-tab { padding: 8px 16px; border: none; background: none; color: var(--text-sub); font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
 .detail-tab.active { color: var(--yellow); border-bottom-color: var(--yellow); }
-
-/* Benefits */
 .benefit-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .benefit-row:last-child { border-bottom: none; }
 .benefit-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--yellow-soft); display: flex; align-items: center; justify-content: center; color: var(--yellow); flex-shrink: 0; }
 .benefit-label { font-size: 12px; color: var(--text-sub); }
 .benefit-value { font-weight: 600; font-size: 14px; }
-
-/* Org tree */
 #org-container { width: 100%; height: 500px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); position: relative; }
-.org-node {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 14px; min-width: 160px; max-width: 200px;
-  cursor: grab; user-select: none; transition: box-shadow 0.15s;
-  position: absolute;
-}
+.org-node { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; min-width: 160px; max-width: 200px; cursor: grab; user-select: none; transition: box-shadow 0.15s; position: absolute; }
 .org-node:active { cursor: grabbing; }
 .org-node.dragging { box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100; opacity: 0.85; }
 .org-node .node-name { font-weight: 700; font-size: 13px; }
@@ -304,126 +185,55 @@ input[type="checkbox"] { accent-color: var(--yellow); width: 15px; height: 15px;
 .org-node .node-area { font-size: 10px; color: var(--yellow); margin-top: 4px; }
 .org-node .node-actions { display: none; gap: 4px; margin-top: 6px; }
 .org-node:hover .node-actions { display: flex; }
-.org-connector { position: absolute; pointer-events: none; }
 svg#org-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
-
-/* ═══════════════════════════════════════════
-   CALENDÁRIO
-═══════════════════════════════════════════ */
 .cal-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .cal-header h2 { font-size: 18px; font-weight: 700; flex: 1; text-align: center; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .cal-day-name { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; padding: 6px; }
-.cal-cell {
-  min-height: 96px; padding: 6px; border-radius: 6px;
-  background: var(--bg-card); border: 1px solid var(--border);
-  font-size: 12px; cursor: pointer; transition: border-color 0.15s;
-  overflow: hidden;
-}
+.cal-cell { min-height: 96px; padding: 6px; border-radius: 6px; background: var(--bg-card); border: 1px solid var(--border); font-size: 12px; cursor: pointer; transition: border-color 0.15s; overflow: hidden; }
 .cal-cell:hover { border-color: var(--yellow); }
 .cal-cell.other-month { opacity: 0.4; }
 .cal-cell.today { border-color: var(--yellow); }
 .cal-cell .day-num { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
-.cal-event {
-  border-radius: 3px; padding: 2px 5px; font-size: 11px;
-  margin-bottom: 2px; white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; color: #000; font-weight: 600;
-}
+.cal-event { border-radius: 3px; padding: 2px 5px; font-size: 11px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #000; font-weight: 600; }
 .cal-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
 .cal-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-
-/* ═══════════════════════════════════════════
-   FRESHDESK
-═══════════════════════════════════════════ */
-.flow-diagram {
-  display: flex; align-items: center; gap: 0;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;
-  overflow-x: auto;
-}
-.flow-step {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 16px; border-radius: 6px; background: var(--bg-surface);
-  border: 1px solid var(--border); min-width: 140px; text-align: center;
-}
+.flow-diagram { display: flex; align-items: center; gap: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; overflow-x: auto; }
+.flow-step { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 16px; border-radius: 6px; background: var(--bg-surface); border: 1px solid var(--border); min-width: 140px; text-align: center; }
 .flow-step .step-num { font-size: 10px; font-weight: 700; color: var(--yellow); text-transform: uppercase; }
 .flow-step .step-name { font-size: 12px; font-weight: 600; }
 .flow-arrow { color: var(--text-muted); font-size: 20px; padding: 0 8px; }
-
-.ticket-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
-  transition: all 0.15s;
-}
+.ticket-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; transition: all 0.15s; }
 .ticket-card.done { border-left: 3px solid var(--green); }
 .ticket-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .ticket-title { font-weight: 700; font-size: 14px; flex: 1; }
 .ticket-steps { display: flex; gap: 6px; flex-wrap: wrap; }
-.step-btn {
-  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
-  border: 1px solid var(--border); background: var(--bg-surface);
-  color: var(--text-sub); cursor: pointer; transition: all 0.15s;
-}
+.step-btn { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-sub); cursor: pointer; transition: all 0.15s; }
 .step-btn.done { background: var(--green); color: #fff; border-color: var(--green); }
 .step-btn.active-step { border-color: var(--yellow); color: var(--yellow); }
-
-/* ═══════════════════════════════════════════
-   ATIVOS
-═══════════════════════════════════════════ */
-.upload-zone {
-  border: 2px dashed var(--border); border-radius: var(--radius);
-  padding: 40px; text-align: center; cursor: pointer;
-  transition: all 0.2s; margin-bottom: 20px;
-}
+.upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 20px; }
 .upload-zone:hover, .upload-zone.dragover { border-color: var(--yellow); background: var(--yellow-soft); }
 .upload-zone i { font-size: 32px; color: var(--text-muted); margin-bottom: 8px; }
 .upload-zone p { color: var(--text-sub); font-size: 13px; }
 .upload-zone span { color: var(--yellow); font-weight: 600; cursor: pointer; }
-
-/* ═══════════════════════════════════════════
-   DOCUMENTOS
-═══════════════════════════════════════════ */
-.doc-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 16px;
-  display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
-}
+.doc-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .doc-icon { width: 38px; height: 38px; border-radius: 8px; background: var(--yellow-soft); display: flex; align-items: center; justify-content: center; color: var(--yellow); flex-shrink: 0; }
 .doc-info { flex: 1; min-width: 0; }
 .doc-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .doc-meta { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
-
-/* ═══════════════════════════════════════════
-   ADMIN PANEL
-═══════════════════════════════════════════ */
 .user-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--yellow-soft); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--yellow); }
-
-/* Filters bar */
 .filters-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
-.filters-bar input, .filters-bar select {
-  padding: 7px 12px; background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); color: var(--text-main); font-size: 13px; outline: none;
-}
+.filters-bar input, .filters-bar select { padding: 7px 12px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-main); font-size: 13px; outline: none; }
 .filters-bar input:focus, .filters-bar select:focus { border-color: var(--yellow); }
-
-/* Color picker row */
 .color-swatch { width: 20px; height: 20px; border-radius: 4px; display: inline-block; }
-
-/* Tabs within admin */
 .sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
 .sub-tab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--text-sub); font-size: 12px; font-weight: 600; cursor: pointer; }
 .sub-tab.active { background: var(--yellow); color: #000; border-color: var(--yellow); }
-
-/* empty state */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
 .empty-state i { font-size: 40px; margin-bottom: 10px; display: block; }
-
-/* ═══════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════ */
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
   #sidebar { width: 200px; transform: translateX(-100%); transition: transform 0.25s; }
@@ -434,19 +244,12 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
 </style>
 </head>
 <body>
-
-<!-- ═══ LOADING ═══ -->
 <div id="loading">
   <div class="spinner"></div>
   <span style="color:var(--text-sub);font-size:13px;">Conectando ao Brunel Cockpit…</span>
 </div>
-
-<!-- ═══ TOAST ═══ -->
 <div id="toast-container"></div>
 
-<!-- ═══════════════════════════════════════════
-     LOGIN SCREEN
-═══════════════════════════════════════════ -->
 <div id="login-screen" style="display:none;">
   <div class="login-box">
     <div class="login-logo">
@@ -458,15 +261,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
       <label>Usuário</label>
       <select id="login-user">
         <option value="">Selecione…</option>
-        <option>ADMIN</option>
-        <option>D.DINIZ</option>
-        <option>J.TROTTE</option>
-        <option>C.BALDOTTO</option>
-        <option>C.LAGOA</option>
-        <option>LUIZ.O</option>
-        <option>LIVIA.O</option>
-        <option>R.ALMEIDA</option>
-        <option>S.BRAGA</option>
+        <option>ADMIN</option><option>D.DINIZ</option><option>J.TROTTE</option>
+        <option>C.BALDOTTO</option><option>C.LAGOA</option><option>LUIZ.O</option>
+        <option>LIVIA.O</option><option>R.ALMEIDA</option><option>S.BRAGA</option>
       </select>
     </div>
     <div class="form-group">
@@ -478,98 +275,47 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- ═══ SET PASSWORD (first access) ═══ -->
 <div class="modal-overlay" id="modal-setpass">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Defina sua senha</span>
-    </div>
+    <div class="modal-header"><span class="modal-title">Defina sua senha</span></div>
     <p style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">Primeiro acesso detectado. Crie uma senha pessoal para continuar.</p>
     <div class="form-group"><label>Nova Senha</label><input type="password" id="new-pass1" placeholder="Mínimo 4 caracteres"/></div>
     <div class="form-group"><label>Confirmar Senha</label><input type="password" id="new-pass2" placeholder="Repita a senha"/></div>
     <div class="login-error" id="setpass-error"></div>
-    <div class="modal-footer">
-      <button class="btn btn-yellow" onclick="confirmSetPass()">Salvar Senha</button>
-    </div>
+    <div class="modal-footer"><button class="btn btn-yellow" onclick="confirmSetPass()">Salvar Senha</button></div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     APP SHELL
-═══════════════════════════════════════════ -->
 <div id="app">
-
-  <!-- HEADER -->
   <header id="header">
-    <div class="header-logo">
-      <div class="logo-mark">B</div>
-      <span>Brunel Cockpit</span>
-    </div>
+    <div class="header-logo"><div class="logo-mark">B</div><span>Brunel Cockpit</span></div>
     <div class="header-spacer"></div>
-    <div class="header-user">
-      Olá, <strong id="header-username">—</strong>
-    </div>
-    <!-- Theme toggle -->
-    <button class="icon-btn" title="Alternar tema" onclick="toggleTheme()">
-      <i class="fa fa-circle-half-stroke"></i>
-    </button>
-    <!-- Admin panel (only for ADMIN) -->
-    <button class="icon-btn" id="admin-btn" title="Painel Admin" onclick="openAdmin()" style="display:none;">
-      <i class="fa fa-users-cog"></i>
-    </button>
-    <button class="icon-btn" title="Sair" onclick="doLogout()">
-      <i class="fa fa-right-from-bracket"></i>
-    </button>
+    <div class="header-user">Olá, <strong id="header-username">—</strong></div>
+    <button class="icon-btn" title="Alternar tema" onclick="toggleTheme()"><i class="fa fa-circle-half-stroke"></i></button>
+    <button class="icon-btn" id="admin-btn" title="Painel Admin" onclick="openAdmin()" style="display:none;"><i class="fa fa-users-cog"></i></button>
+    <button class="icon-btn" title="Sair" onclick="doLogout()"><i class="fa fa-right-from-bracket"></i></button>
   </header>
-
-  <!-- BODY -->
   <div id="body">
-
-    <!-- SIDEBAR -->
     <nav id="sidebar">
-      <button class="nav-item active" data-tab="tab-contas" onclick="switchTab('tab-contas',this)">
-        <i class="fa fa-building"></i> Contas
-      </button>
-      <button class="nav-item" data-tab="tab-calendar" onclick="switchTab('tab-calendar',this)">
-        <i class="fa fa-calendar-days"></i> Calendário Sales
-      </button>
-      <button class="nav-item" data-tab="tab-freshdesk" onclick="switchTab('tab-freshdesk',this)">
-        <i class="fa fa-ticket"></i> Freshdesk
-      </button>
-      <button class="nav-item" data-tab="tab-ativos" onclick="switchTab('tab-ativos',this)">
-        <i class="fa fa-users"></i> Ativos
-      </button>
-      <button class="nav-item" data-tab="tab-docs" onclick="switchTab('tab-docs',this)">
-        <i class="fa fa-folder-open"></i> Documentos
-      </button>
+      <button class="nav-item active" onclick="switchTab('tab-contas',this)"><i class="fa fa-building"></i> Contas</button>
+      <button class="nav-item" onclick="switchTab('tab-calendar',this)"><i class="fa fa-calendar-days"></i> Calendário Sales</button>
+      <button class="nav-item" onclick="switchTab('tab-freshdesk',this)"><i class="fa fa-ticket"></i> Freshdesk</button>
+      <button class="nav-item" onclick="switchTab('tab-ativos',this)"><i class="fa fa-users"></i> Ativos</button>
+      <button class="nav-item" onclick="switchTab('tab-docs',this)"><i class="fa fa-folder-open"></i> Documentos</button>
     </nav>
-
-    <!-- MAIN CONTENT -->
     <main id="main">
 
-      <!-- ═══════════════════════════════════════
-           ABA 1 — CONTAS
-      ═══════════════════════════════════════ -->
       <div id="tab-contas" class="tab-page active">
-
-        <!-- Account list view -->
         <div id="accounts-list-view">
           <div class="page-header">
-            <div>
-              <div class="page-title">Contas</div>
-              <div class="page-subtitle">Clientes e contratos ativos</div>
-            </div>
-            <button class="btn btn-yellow" onclick="openModalAccount()">
-              <i class="fa fa-plus"></i> Nova Conta
-            </button>
+            <div><div class="page-title">Contas</div><div class="page-subtitle">Clientes e contratos ativos</div></div>
+            <button class="btn btn-yellow" onclick="openModalAccount()"><i class="fa fa-plus"></i> Nova Conta</button>
           </div>
           <div class="filters-bar">
             <input type="text" id="accounts-search" placeholder="Buscar por razão social ou CNPJ…" oninput="renderAccounts()" style="flex:1;min-width:200px;"/>
           </div>
           <div class="account-cards" id="account-cards"></div>
         </div>
-
-        <!-- Account detail view -->
         <div id="account-detail">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
             <button class="btn btn-ghost btn-sm" onclick="backToAccounts()"><i class="fa fa-arrow-left"></i> Voltar</button>
@@ -580,54 +326,33 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
             <button class="btn btn-ghost btn-sm" onclick="openModalAccount(currentAccountId)"><i class="fa fa-pen"></i> Editar</button>
             <button class="btn btn-danger btn-sm" onclick="deleteAccount(currentAccountId)"><i class="fa fa-trash"></i></button>
           </div>
-
-          <!-- Detail sub-tabs -->
           <div class="detail-tabs">
             <button class="detail-tab active" onclick="switchDetailTab('dtab-info',this)">Informações</button>
             <button class="detail-tab" onclick="switchDetailTab('dtab-benefits',this)">Benefícios</button>
             <button class="detail-tab" onclick="switchDetailTab('dtab-org',this)">Organograma</button>
           </div>
-
-          <!-- INFO -->
           <div id="dtab-info" class="detail-pane">
             <div class="grid-2" style="gap:20px;">
-              <div class="card">
-                <div class="section-title">Dados Cadastrais</div>
-                <div id="detail-info-body" style="font-size:13px;line-height:2;"></div>
-              </div>
-              <div class="card">
-                <div class="section-title">Endereço</div>
-                <div id="detail-address-body" style="font-size:13px;line-height:2;"></div>
-              </div>
+              <div class="card"><div class="section-title">Dados Cadastrais</div><div id="detail-info-body" style="font-size:13px;line-height:2;"></div></div>
+              <div class="card"><div class="section-title">Endereço</div><div id="detail-address-body" style="font-size:13px;line-height:2;"></div></div>
             </div>
           </div>
-
-          <!-- BENEFITS -->
           <div id="dtab-benefits" class="detail-pane" style="display:none;">
             <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
               <button class="btn btn-yellow btn-sm" onclick="openBenefitModal()"><i class="fa fa-plus"></i> Editar Benefícios</button>
             </div>
-            <div class="card">
-              <div id="benefits-display"></div>
-            </div>
+            <div class="card"><div id="benefits-display"></div></div>
           </div>
-
-          <!-- ORG CHART -->
           <div id="dtab-org" class="detail-pane" style="display:none;">
             <div style="display:flex;gap:8px;margin-bottom:12px;">
               <button class="btn btn-yellow btn-sm" onclick="openNodeModal()"><i class="fa fa-plus"></i> Adicionar Pessoa</button>
               <button class="btn btn-ghost btn-sm" onclick="resetOrgLayout()"><i class="fa fa-rotate"></i> Reorganizar</button>
             </div>
-            <div id="org-container">
-              <svg id="org-svg"></svg>
-            </div>
+            <div id="org-container"><svg id="org-svg"></svg></div>
           </div>
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════
-           ABA 2 — CALENDÁRIO
-      ═══════════════════════════════════════ -->
       <div id="tab-calendar" class="tab-page">
         <div class="page-header">
           <div><div class="page-title">Calendário Sales</div></div>
@@ -646,16 +371,11 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
         <div id="cal-body"></div>
       </div>
 
-      <!-- ═══════════════════════════════════════
-           ABA 3 — FRESHDESK
-      ═══════════════════════════════════════ -->
       <div id="tab-freshdesk" class="tab-page">
         <div class="page-header">
           <div><div class="page-title">Freshdesk</div><div class="page-subtitle">Gestão de tickets internos</div></div>
           <button class="btn btn-yellow" onclick="openTicketModal()"><i class="fa fa-plus"></i> Novo Ticket</button>
         </div>
-
-        <!-- Flow diagram -->
         <div class="flow-diagram">
           <div class="flow-step"><span class="step-num">Etapa 1</span><span class="step-name">Ticket Encaminhado Internamente</span></div>
           <div class="flow-arrow">→</div>
@@ -663,8 +383,6 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
           <div class="flow-arrow">→</div>
           <div class="flow-step"><span class="step-num">Etapa 3</span><span class="step-name">Ticket Finalizado Internamente</span></div>
         </div>
-
-        <!-- Categories + filters -->
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:16px;">
           <div class="card" style="flex:1;min-width:220px;max-width:280px;">
             <div class="section-title" style="margin-bottom:10px;">Categorias</div>
@@ -685,44 +403,33 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════
-           ABA 4 — ATIVOS
-      ═══════════════════════════════════════ -->
       <div id="tab-ativos" class="tab-page">
         <div class="page-header">
           <div><div class="page-title">Ativos</div><div class="page-subtitle">Headcount e planilhas de colaboradores</div></div>
           <button class="btn btn-yellow" onclick="document.getElementById('xlsx-upload').click()"><i class="fa fa-upload"></i> Importar Planilha</button>
         </div>
         <input type="file" id="xlsx-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleXlsxUpload(this)"/>
-
         <div class="upload-zone" id="xlsx-drop-zone" onclick="document.getElementById('xlsx-upload').click()">
           <i class="fa fa-file-excel"></i>
           <p>Arraste uma planilha <strong>.xlsx</strong> aqui ou <span>clique para selecionar</span></p>
         </div>
-
         <div class="filters-bar">
           <select id="ativos-filter-client" onchange="renderAtivos()"><option value="">Todos os clientes</option></select>
           <input type="text" id="ativos-search" placeholder="Buscar…" oninput="renderAtivos()"/>
         </div>
-
         <div id="ativos-list"></div>
       </div>
 
-      <!-- ═══════════════════════════════════════
-           ABA 5 — DOCUMENTOS
-      ═══════════════════════════════════════ -->
       <div id="tab-docs" class="tab-page">
         <div class="page-header">
           <div><div class="page-title">Documentos Recorrentes</div></div>
           <button class="btn btn-yellow" onclick="document.getElementById('doc-upload').click()"><i class="fa fa-upload"></i> Enviar Documento</button>
         </div>
         <input type="file" id="doc-upload" style="display:none;" onchange="handleDocUpload(this)"/>
-
         <div class="upload-zone" id="doc-drop-zone" onclick="document.getElementById('doc-upload').click()">
           <i class="fa fa-folder-arrow-up"></i>
           <p>Arraste documentos aqui ou <span>clique para selecionar</span></p>
         </div>
-
         <div class="filters-bar">
           <input type="text" id="docs-search" placeholder="Buscar por nome…" oninput="renderDocs()" style="flex:1;"/>
           <select id="docs-filter-client" onchange="renderDocs()"><option value="">Todos os clientes</option></select>
@@ -734,17 +441,10 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     MODALS
-═══════════════════════════════════════════ -->
-
-<!-- Account Modal -->
+<!-- MODALS -->
 <div class="modal-overlay" id="modal-account">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-account-title">Nova Conta</span>
-      <button class="modal-close" onclick="closeModal('modal-account')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title" id="modal-account-title">Nova Conta</span><button class="modal-close" onclick="closeModal('modal-account')">×</button></div>
     <div class="form-group"><label>CNPJ</label><input id="ff-cnpj" placeholder="00.000.000/0000-00" maxlength="18" oninput="maskCNPJ(this)"/></div>
     <div class="form-group"><label>Razão Social</label><input id="ff-razao" placeholder="Nome da empresa"/></div>
     <div class="form-group"><label>Área de Atuação</label><input id="ff-area" placeholder="Ex: Óleo & Gás, Mineração…"/></div>
@@ -769,13 +469,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- Benefits Modal -->
 <div class="modal-overlay" id="modal-benefit">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Benefícios</span>
-      <button class="modal-close" onclick="closeModal('modal-benefit')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title">Benefícios</span><button class="modal-close" onclick="closeModal('modal-benefit')">×</button></div>
     <div class="form-group"><label>Vale Alimentação (VA)</label><input id="ben-va" placeholder="Ex: R$ 600,00 / mês"/></div>
     <div class="form-group"><label>Vale Refeição (VR)</label><input id="ben-vr" placeholder="Ex: R$ 35,00 / dia"/></div>
     <div class="form-group"><label>Plano de Saúde</label><input id="ben-saude" placeholder="Ex: Unimed — Plano Básico"/></div>
@@ -789,13 +485,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- Org Node Modal -->
 <div class="modal-overlay" id="modal-node">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-node-title">Adicionar Pessoa</span>
-      <button class="modal-close" onclick="closeModal('modal-node')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title" id="modal-node-title">Adicionar Pessoa</span><button class="modal-close" onclick="closeModal('modal-node')">×</button></div>
     <div class="form-group"><label>Nome</label><input id="node-name" placeholder="Nome completo"/></div>
     <div class="form-group"><label>Cargo</label><input id="node-role" placeholder="Ex: Gerente de Operações"/></div>
     <div class="form-group"><label>Área</label><input id="node-area" placeholder="Ex: Produção"/></div>
@@ -808,27 +500,15 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- Calendar Event Modal -->
 <div class="modal-overlay" id="modal-cal">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title" id="modal-cal-title">Novo Evento</span>
-      <button class="modal-close" onclick="closeModal('modal-cal')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title" id="modal-cal-title">Novo Evento</span><button class="modal-close" onclick="closeModal('modal-cal')">×</button></div>
     <div class="form-group"><label>Título</label><input id="cal-title" placeholder="Título do evento"/></div>
     <div class="grid-2">
       <div class="form-group"><label>Data</label><input type="date" id="cal-date"/></div>
-      <div class="form-group"><label>Tipo</label>
-        <select id="cal-type">
-          <option value="visitacao">Visitação</option>
-          <option value="onboarding">Onboarding</option>
-          <option value="outro">Outro</option>
-        </select>
-      </div>
+      <div class="form-group"><label>Tipo</label><select id="cal-type"><option value="visitacao">Visitação</option><option value="onboarding">Onboarding</option><option value="outro">Outro</option></select></div>
     </div>
-    <div class="form-group"><label>Cliente</label>
-      <select id="cal-client"><option value="">— Sem cliente —</option></select>
-    </div>
+    <div class="form-group"><label>Cliente</label><select id="cal-client"><option value="">— Sem cliente —</option></select></div>
     <div class="form-group"><label>Observações</label><textarea id="cal-obs" rows="2" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-cal')">Cancelar</button>
@@ -837,13 +517,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- Ticket Modal -->
 <div class="modal-overlay" id="modal-ticket">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Novo Ticket</span>
-      <button class="modal-close" onclick="closeModal('modal-ticket')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title">Novo Ticket</span><button class="modal-close" onclick="closeModal('modal-ticket')">×</button></div>
     <div class="form-group"><label>Título</label><input id="ticket-title" placeholder="Assunto do ticket"/></div>
     <div class="form-group"><label>Categoria</label><select id="ticket-cat"><option value="">Selecione…</option></select></div>
     <div class="form-group"><label>Descrição</label><textarea id="ticket-desc" rows="3" placeholder="Descreva o ticket…" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea></div>
@@ -855,13 +531,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- FD Category Modal -->
 <div class="modal-overlay" id="modal-cat">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Nova Categoria</span>
-      <button class="modal-close" onclick="closeModal('modal-cat')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title">Nova Categoria</span><button class="modal-close" onclick="closeModal('modal-cat')">×</button></div>
     <div class="form-group"><label>Nome</label><input id="cat-name" placeholder="Nome da categoria"/></div>
     <div class="form-group"><label>Cor</label><input type="color" id="cat-color" value="#3b82f6" style="height:38px;width:100%;padding:2px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;"/></div>
     <div class="modal-footer">
@@ -871,20 +543,10 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- Ativo schedule Modal -->
 <div class="modal-overlay" id="modal-ativo-sched">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Programar Evento para Ativo</span>
-      <button class="modal-close" onclick="closeModal('modal-ativo-sched')">×</button>
-    </div>
-    <div class="form-group"><label>Tipo</label>
-      <select id="sched-type">
-        <option value="desligamento">Desligamento</option>
-        <option value="extensao">Extensão de Contrato</option>
-        <option value="outro">Outro</option>
-      </select>
-    </div>
+    <div class="modal-header"><span class="modal-title">Programar Evento para Ativo</span><button class="modal-close" onclick="closeModal('modal-ativo-sched')">×</button></div>
+    <div class="form-group"><label>Tipo</label><select id="sched-type"><option value="desligamento">Desligamento</option><option value="extensao">Extensão de Contrato</option><option value="outro">Outro</option></select></div>
     <div class="form-group"><label>Data</label><input type="date" id="sched-date"/></div>
     <div class="form-group"><label>Observação</label><input id="sched-obs" placeholder="Detalhes…"/></div>
     <div class="modal-footer">
@@ -894,13 +556,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- Doc name modal -->
 <div class="modal-overlay" id="modal-doc-name">
   <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Salvar Documento</span>
-      <button class="modal-close" onclick="closeModal('modal-doc-name')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title">Salvar Documento</span><button class="modal-close" onclick="closeModal('modal-doc-name')">×</button></div>
     <div class="form-group"><label>Nome do Documento</label><input id="doc-name-input" placeholder="Nome para identificar o arquivo"/></div>
     <div class="form-group"><label>Cliente (opcional)</label><select id="doc-client-select"><option value="">— Sem cliente —</option></select></div>
     <div class="modal-footer">
@@ -910,18 +568,13 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   </div>
 </div>
 
-<!-- Admin Modal -->
 <div class="modal-overlay" id="modal-admin">
   <div class="modal modal-lg">
-    <div class="modal-header">
-      <span class="modal-title">Painel Administrativo</span>
-      <button class="modal-close" onclick="closeModal('modal-admin')">×</button>
-    </div>
+    <div class="modal-header"><span class="modal-title">Painel Administrativo</span><button class="modal-close" onclick="closeModal('modal-admin')">×</button></div>
     <div id="admin-users-list"></div>
   </div>
 </div>
 
-<!-- Confirm modal -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal" style="max-width:380px;">
     <div class="modal-header"><span class="modal-title">Confirmar</span></div>
@@ -932,41 +585,12 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
     </div>
   </div>
 </div>
-
-<!-- ═══════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════ -->
 <script>
-/* ══════════════════════════════════════════════
-   ███████╗██╗██████╗ ███████╗██████╗  █████╗ ███████╗███████╗
-   ██╔════╝██║██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
-   █████╗  ██║██████╔╝█████╗  ██████╔╝███████║███████╗█████╗
-   ██╔══╝  ██║██╔══██╗██╔══╝  ██╔══██╗██╔══██║╚════██║██╔══╝
-   ██║     ██║██║  ██║███████╗██████╔╝██║  ██║███████║███████╗
-   ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
-
-   ██████╗  ██████╗ ██████╗ ██████╗ ██╗████████╗
-   ██╔════╝██╔═══██╗██╔════╝██╔══██╗██║╚══██╔══╝
-   ██║     ██║   ██║██║     ██████╔╝██║   ██║
-   ██║     ██║   ██║██║     ██╔═══╝ ██║   ██║
-   ╚██████╗╚██████╔╝╚██████╗██║     ██║   ██║
-    ╚═════╝ ╚═════╝  ╚═════╝╚═╝     ╚═╝   ╚═╝
-
-   ══════════════════════════════════════════════
-   🔧 CONFIGURE FIREBASE AQUI
-   ══════════════════════════════════════════════
+/* 🔧 CONFIGURE FIREBASE AQUI
    1. Acesse https://console.firebase.google.com
-   2. Crie um projeto chamado "brunel-cockpit"
-   3. Clique em "Adicionar app" > Web
-   4. Copie as credenciais e cole abaixo
-   ══════════════════════════════════════════════ */
+   2. Crie um projeto, clique em "Adicionar app" > Web
+   3. Copie as credenciais e cole abaixo */
 
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC3lJX3uIrDA6VS1G0ZyA95hlbT4nVwzxQ",
   authDomain: "brunel-cockpit-3fe2e.firebaseapp.com",
@@ -976,12 +600,6 @@ const firebaseConfig = {
   messagingSenderId: "787155785472",
   appId: "1:787155785472:web:a9e96d96f46409ac72c5e5"
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-/* ══════════════════════════════════════════════
-   FIREBASE INIT
-══════════════════════════════════════════════ */
 let db;
 let firebaseReady = false;
 
@@ -992,30 +610,15 @@ function initFirebase() {
     firebaseReady = true;
   } catch(e) {
     console.error('Firebase init error:', e);
-    toast('Erro ao conectar ao Firebase. Verifique as credenciais no código.', 'error');
   }
 }
 
-/* ── Firebase helpers ── */
-function fbGet(path) {
-  return db.ref(path).once('value').then(s => s.val());
-}
-function fbSet(path, val) {
-  return db.ref(path).set(val);
-}
-function fbPush(path, val) {
-  return db.ref(path).push(val);
-}
-function fbUpdate(path, val) {
-  return db.ref(path).update(val);
-}
-function fbDelete(path) {
-  return db.ref(path).remove();
-}
+function fbGet(path) { return db.ref(path).once('value').then(s => s.val()); }
+function fbSet(path, val) { return db.ref(path).set(val); }
+function fbPush(path, val) { return db.ref(path).push(val); }
+function fbUpdate(path, val) { return db.ref(path).update(val); }
+function fbDelete(path) { return db.ref(path).remove(); }
 
-/* ══════════════════════════════════════════════
-   USERS / AUTH
-══════════════════════════════════════════════ */
 const DEFAULT_USERS = ['ADMIN','D.DINIZ','J.TROTTE','C.BALDOTTO','C.LAGOA','LUIZ.O','LIVIA.O','R.ALMEIDA','S.BRAGA'];
 const ADMIN_DEFAULT_PASS = 'Casaca';
 let currentUser = null;
@@ -1024,7 +627,6 @@ let pendingSetPassUser = null;
 async function loadUsers() {
   const users = await fbGet('users');
   if (!users) {
-    // Seed users
     const seed = {};
     DEFAULT_USERS.forEach(u => {
       seed[u] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
@@ -1036,7 +638,6 @@ async function loadUsers() {
 }
 
 function hashPass(p) {
-  // Simple hash — for production use bcrypt or Firebase Auth
   let h = 0;
   for (let i = 0; i < p.length; i++) { h = (Math.imul(31, h) + p.charCodeAt(i)) | 0; }
   return 'h' + Math.abs(h).toString(36);
@@ -1048,26 +649,25 @@ async function doLogin() {
   document.getElementById('login-error').textContent = '';
   if (!user) { document.getElementById('login-error').textContent = 'Selecione um usuário.'; return; }
   if (!pass) { document.getElementById('login-error').textContent = 'Digite a senha.'; return; }
-
+  if (!firebaseReady) {
+    const el = document.getElementById('login-error');
+    el.textContent = '⚠ Firebase não configurado. Insira as credenciais no código e recarregue a página.';
+    el.style.color = 'orange';
+    return;
+  }
   const users = await loadUsers();
   const rec = users[user];
   if (!rec) { document.getElementById('login-error').textContent = 'Usuário não encontrado.'; return; }
-
   if (rec.mustSetPass) {
-    // Allow login with default "pass" = username for first access check
-    // Admin uses "Casaca", others have null password (any value triggers set pass)
     if (user === 'ADMIN' && hashPass(pass) !== rec.passwordHash) {
-      document.getElementById('login-error').textContent = 'Senha incorreta.';
-      return;
+      document.getElementById('login-error').textContent = 'Senha incorreta.'; return;
     }
     pendingSetPassUser = user;
     openModal('modal-setpass');
     return;
   }
-
   if (hashPass(pass) !== rec.passwordHash) {
-    document.getElementById('login-error').textContent = 'Senha incorreta.';
-    return;
+    document.getElementById('login-error').textContent = 'Senha incorreta.'; return;
   }
   loginSuccess(user);
 }
@@ -1106,13 +706,11 @@ async function openAdmin() {
   Object.entries(users).forEach(([key, u]) => {
     const row = document.createElement('div');
     row.className = 'user-row';
-    row.innerHTML = `
-      <div class="user-avatar">${key[0]}</div>
+    row.innerHTML = `<div class="user-avatar">${key[0]}</div>
       <div style="flex:1;"><div style="font-weight:600;">${key}</div>
         <div style="font-size:11px;color:var(--text-sub);">${u.mustSetPass ? '⚠ Senha não definida' : '✓ Senha ativa'}</div>
       </div>
-      ${key !== 'ADMIN' ? `<button class="btn btn-ghost btn-sm" onclick="resetUserPass('${key}')"><i class="fa fa-rotate-left"></i> Resetar Senha</button>` : ''}
-    `;
+      ${key !== 'ADMIN' ? `<button class="btn btn-ghost btn-sm" onclick="resetUserPass('${key}')"><i class="fa fa-rotate-left"></i> Resetar Senha</button>` : ''}`;
     el.appendChild(row);
   });
   openModal('modal-admin');
@@ -1124,15 +722,11 @@ async function resetUserPass(user) {
   openAdmin();
 }
 
-/* ══════════════════════════════════════════════
-   NAVIGATION
-══════════════════════════════════════════════ */
 function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-page').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById(tabId).classList.add('active');
   if (btn) btn.classList.add('active');
-  // Refresh relevant data
   if (tabId === 'tab-calendar') renderCalendar();
   if (tabId === 'tab-freshdesk') { renderTickets(); renderFdCategories(); }
   if (tabId === 'tab-ativos') renderAtivos();
@@ -1147,9 +741,6 @@ function switchDetailTab(paneId, btn) {
   if (paneId === 'dtab-org') renderOrg();
 }
 
-/* ══════════════════════════════════════════════
-   UTILS
-══════════════════════════════════════════════ */
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function toast(msg, type='info') {
   const c = document.getElementById('toast-container');
@@ -1208,15 +799,7 @@ function fmtDate(d) {
   return `${day}/${m}/${y}`;
 }
 
-/* ══════════════════════════════════════════════
-   GLOBAL STATE (fetched from Firebase)
-══════════════════════════════════════════════ */
-let accounts = {};
-let calEvents = {};
-let tickets = {};
-let fdCats = {};
-let ativos = {};
-let docs = {};
+let accounts = {}, calEvents = {}, tickets = {}, fdCats = {}, ativos = {}, docs = {};
 
 async function renderAll() {
   await Promise.all([
@@ -1236,30 +819,19 @@ async function renderAll() {
   populateClientSelects();
 }
 
-/* ══════════════════════════════════════════════
-   ── ABA 1: CONTAS ──
-══════════════════════════════════════════════ */
 let currentAccountId = null;
 
 function renderAccounts() {
   const q = (document.getElementById('accounts-search')?.value || '').toLowerCase();
   const el = document.getElementById('account-cards');
   el.innerHTML = '';
-  const list = Object.entries(accounts).filter(([,a]) =>
-    a.razao.toLowerCase().includes(q) || a.cnpj.includes(q)
-  );
-  if (!list.length) {
-    el.innerHTML = '<div class="empty-state"><i class="fa fa-building"></i><p>Nenhuma conta encontrada.</p></div>';
-    return;
-  }
+  const list = Object.entries(accounts).filter(([,a]) => a.razao.toLowerCase().includes(q) || a.cnpj.includes(q));
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-building"></i><p>Nenhuma conta encontrada.</p></div>'; return; }
   list.forEach(([id, a]) => {
     const c = document.createElement('div');
     c.className = 'account-card';
-    c.innerHTML = `
-      <h3>${a.razao}</h3>
-      <div class="cnpj">${a.cnpj}</div>
-      <div class="area"><span class="badge" style="background:${areaColor(a.area)}22;color:${areaColor(a.area)}">${a.area || '—'}</span></div>
-    `;
+    c.innerHTML = `<h3>${a.razao}</h3><div class="cnpj">${a.cnpj}</div>
+      <div class="area"><span class="badge" style="background:${areaColor(a.area)}22;color:${areaColor(a.area)}">${a.area || '—'}</span></div>`;
     c.onclick = () => openAccountDetail(id);
     el.appendChild(c);
   });
@@ -1279,8 +851,8 @@ async function saveAccount() {
   const razao = document.getElementById('ff-razao').value.trim();
   if (!razao) { toast('Razão social é obrigatória.', 'error'); return; }
   const data = {
-    cnpj: document.getElementById('ff-cnpj').value,
-    razao, area: document.getElementById('ff-area').value,
+    cnpj: document.getElementById('ff-cnpj').value, razao,
+    area: document.getElementById('ff-area').value,
     cep: document.getElementById('ff-cep').value,
     logradouro: document.getElementById('ff-logradouro').value,
     numero: document.getElementById('ff-numero').value,
@@ -1324,18 +896,8 @@ function openAccountDetail(id) {
   document.getElementById('account-detail').classList.add('active');
   document.getElementById('detail-title').textContent = a.razao;
   document.getElementById('detail-cnpj').textContent = a.cnpj;
-  // info pane
-  document.getElementById('detail-info-body').innerHTML = `
-    <b>Área:</b> ${a.area || '—'}<br>
-    <b>CEP:</b> ${a.cep || '—'}<br>
-    <b>Obs:</b> ${a.obs || '—'}
-  `;
-  document.getElementById('detail-address-body').innerHTML = `
-    ${a.logradouro || '—'}, ${a.numero || '—'}<br>
-    ${a.bairro || '—'}<br>
-    ${a.cidade || '—'} – ${a.estado || '—'}
-  `;
-  // reset to info tab
+  document.getElementById('detail-info-body').innerHTML = `<b>Área:</b> ${a.area || '—'}<br><b>CEP:</b> ${a.cep || '—'}<br><b>Obs:</b> ${a.obs || '—'}`;
+  document.getElementById('detail-address-body').innerHTML = `${a.logradouro || '—'}, ${a.numero || '—'}<br>${a.bairro || '—'}<br>${a.cidade || '—'} – ${a.estado || '—'}`;
   document.querySelectorAll('.detail-pane').forEach(p => p.style.display='none');
   document.getElementById('dtab-info').style.display='block';
   document.querySelectorAll('.detail-tab').forEach(b => b.classList.remove('active'));
@@ -1349,12 +911,9 @@ function backToAccounts() {
   document.getElementById('account-detail').classList.remove('active');
 }
 
-/* ── Benefits ── */
 function openBenefitModal() {
   const b = accounts[currentAccountId]?.benefits || {};
-  ['va','vr','saude','seguro','vt','outros'].forEach(f => {
-    document.getElementById('ben-'+f).value = b[f] || '';
-  });
+  ['va','vr','saude','seguro','vt','outros'].forEach(f => { document.getElementById('ben-'+f).value = b[f] || ''; });
   openModal('modal-benefit');
 }
 
@@ -1378,26 +937,19 @@ function renderBenefits(id) {
     { key:'vt', icon:'fa-bus', label:'Vale Transporte' },
     { key:'outros', icon:'fa-plus', label:'Outros Benefícios' },
   ];
-  const el = document.getElementById('benefits-display');
-  el.innerHTML = defs.map(d => `
+  document.getElementById('benefits-display').innerHTML = defs.map(d => `
     <div class="benefit-row">
       <div class="benefit-icon"><i class="fa ${d.icon}"></i></div>
       <div style="flex:1;">
         <div class="benefit-label">${d.label}</div>
         <div class="benefit-value">${b[d.key] || '<span style="color:var(--text-muted)">Não informado</span>'}</div>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-/* ── Org Chart ── */
-let orgNodes = {};    // { id: { name, role, area, notes, parentId, x, y } }
-let dragState = null;
-let editingNodeId = null;
+let orgNodes = {}, editingNodeId = null;
 
-async function loadOrgNodes() {
-  orgNodes = (await fbGet(`orgNodes/${currentAccountId}`)) || {};
-}
+async function loadOrgNodes() { orgNodes = (await fbGet(`orgNodes/${currentAccountId}`)) || {}; }
 
 function openNodeModal(editId = null) {
   editingNodeId = editId;
@@ -1407,7 +959,6 @@ function openNodeModal(editId = null) {
   document.getElementById('node-role').value = n?.role || '';
   document.getElementById('node-area').value = n?.area || '';
   document.getElementById('node-notes').value = n?.notes || '';
-  // populate parent select
   const sel = document.getElementById('node-parent');
   sel.innerHTML = '<option value="">— Raiz —</option>';
   Object.entries(orgNodes).forEach(([id, node]) => {
@@ -1444,10 +995,7 @@ async function saveNode() {
 }
 
 async function deleteNode(id) {
-  // Re-parent children to this node's parent
-  Object.entries(orgNodes).forEach(([cid, c]) => {
-    if (c.parentId === id) { c.parentId = orgNodes[id].parentId; }
-  });
+  Object.entries(orgNodes).forEach(([cid, c]) => { if (c.parentId === id) c.parentId = orgNodes[id].parentId; });
   await fbDelete(`orgNodes/${currentAccountId}/${id}`);
   delete orgNodes[id];
   renderOrg();
@@ -1457,11 +1005,9 @@ async function renderOrg() {
   if (!currentAccountId) return;
   await loadOrgNodes();
   const container = document.getElementById('org-container');
-  // Clear old nodes (keep svg)
   [...container.children].forEach(c => { if (c.id !== 'org-svg') c.remove(); });
   const svg = document.getElementById('org-svg');
   svg.innerHTML = '';
-
   const nodeEls = {};
   Object.entries(orgNodes).forEach(([id, n]) => {
     const el = document.createElement('div');
@@ -1469,15 +1015,11 @@ async function renderOrg() {
     el.dataset.id = id;
     el.style.left = (n.x ?? 40) + 'px';
     el.style.top  = (n.y ?? 40) + 'px';
-    el.innerHTML = `
-      <div class="node-name">${n.name}</div>
-      <div class="node-role">${n.role || ''}</div>
-      <div class="node-area">${n.area || ''}</div>
+    el.innerHTML = `<div class="node-name">${n.name}</div><div class="node-role">${n.role || ''}</div><div class="node-area">${n.area || ''}</div>
       <div class="node-actions">
         <button class="btn btn-ghost btn-sm" onclick="openNodeModal('${id}')"><i class="fa fa-pen"></i></button>
         <button class="btn btn-danger btn-sm" onclick="deleteNode('${id}')"><i class="fa fa-trash"></i></button>
-      </div>
-    `;
+      </div>`;
     makeDraggable(el, id, container);
     container.appendChild(el);
     nodeEls[id] = el;
@@ -1489,11 +1031,10 @@ function drawConnectors(svg, nodeEls) {
   svg.innerHTML = '';
   Object.entries(orgNodes).forEach(([id, n]) => {
     if (!n.parentId || !nodeEls[n.parentId] || !nodeEls[id]) return;
-    const parent = nodeEls[n.parentId];
-    const child  = nodeEls[id];
+    const parent = nodeEls[n.parentId], child = nodeEls[id];
     const px = parseInt(parent.style.left) + parent.offsetWidth/2;
-    const py = parseInt(parent.style.top)  + parent.offsetHeight;
-    const cx = parseInt(child.style.left)  + child.offsetWidth/2;
+    const py = parseInt(parent.style.top) + parent.offsetHeight;
+    const cx = parseInt(child.style.left) + child.offsetWidth/2;
     const cy = parseInt(child.style.top);
     const line = document.createElementNS('http://www.w3.org/2000/svg','path');
     const my = (py + cy) / 2;
@@ -1511,11 +1052,11 @@ function makeDraggable(el, id, container) {
     e.preventDefault();
     const rect = container.getBoundingClientRect();
     const startX = e.clientX - rect.left - parseInt(el.style.left);
-    const startY = e.clientY - rect.top  - parseInt(el.style.top);
+    const startY = e.clientY - rect.top - parseInt(el.style.top);
     el.classList.add('dragging');
     const move = mv => {
       el.style.left = (mv.clientX - rect.left - startX) + 'px';
-      el.style.top  = (mv.clientY - rect.top  - startY) + 'px';
+      el.style.top  = (mv.clientY - rect.top - startY) + 'px';
       drawConnectors(document.getElementById('org-svg'), collectNodeEls());
     };
     const up = async () => {
@@ -1539,19 +1080,12 @@ function collectNodeEls() {
 
 function resetOrgLayout() {
   const ids = Object.keys(orgNodes);
-  ids.forEach((id, i) => {
-    orgNodes[id].x = 40 + (i % 4) * 220;
-    orgNodes[id].y = 40 + Math.floor(i / 4) * 120;
-  });
+  ids.forEach((id, i) => { orgNodes[id].x = 40 + (i % 4) * 220; orgNodes[id].y = 40 + Math.floor(i / 4) * 120; });
   const updates = {};
   ids.forEach(id => { updates[`orgNodes/${currentAccountId}/${id}/x`] = orgNodes[id].x; updates[`orgNodes/${currentAccountId}/${id}/y`] = orgNodes[id].y; });
   db.ref().update(updates);
   renderOrg();
 }
-
-/* ══════════════════════════════════════════════
-   ── ABA 2: CALENDÁRIO ──
-══════════════════════════════════════════════ */
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let calView = 'month';
@@ -1587,7 +1121,6 @@ function renderCalLegend() {
     item.innerHTML = `<div class="cal-legend-dot" style="background:${areaColor(a)}"></div>${a}`;
     el.appendChild(item);
   });
-  // Special: desligamentos/ativos events
   const hasAtiv = Object.values(calEvents).some(e => e.source === 'ativo');
   if (hasAtiv) {
     const item = document.createElement('div');
@@ -1608,17 +1141,11 @@ function renderCalMonth() {
   const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
   const daysInPrev = new Date(calYear, calMonth, 0).getDate();
   const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-
   let html = '<div class="cal-grid">';
   dayNames.forEach(d => { html += `<div class="cal-day-name">${d}</div>`; });
-
-  // Previous month fill
   for (let i = firstDay-1; i >= 0; i--) {
-    const d = daysInPrev - i;
-    const dateStr = `${calYear}-${String(calMonth===0?12:calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    html += `<div class="cal-cell other-month"><div class="day-num">${d}</div></div>`;
+    html += `<div class="cal-cell other-month"><div class="day-num">${daysInPrev - i}</div></div>`;
   }
-
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday = today.getDate()===d && today.getMonth()===calMonth && today.getFullYear()===calYear;
@@ -1628,17 +1155,13 @@ function renderCalMonth() {
       const color = e.source==='ativo' ? 'var(--red)' : (acc ? areaColor(acc.area) : '#888');
       return `<div class="cal-event" style="background:${color}" title="${e.title}" onclick="openCalModal('${id}');event.stopPropagation();">${e.source==='ativo'?'⚠ ':''}${e.title}</div>`;
     }).join('');
-    html += `<div class="cal-cell${isToday?' today':''}" onclick="openCalModal(null,'${dateStr}')">
-      <div class="day-num">${d}</div>${evHtml}</div>`;
+    html += `<div class="cal-cell${isToday?' today':''}" onclick="openCalModal(null,'${dateStr}')"><div class="day-num">${d}</div>${evHtml}</div>`;
   }
-
-  // Fill remaining
   const total = firstDay + daysInMonth;
   const remaining = (7 - (total % 7)) % 7;
   for (let d = 1; d <= remaining; d++) {
     html += `<div class="cal-cell other-month"><div class="day-num">${d}</div></div>`;
   }
-
   html += '</div>';
   el.innerHTML = html;
 }
@@ -1646,16 +1169,14 @@ function renderCalMonth() {
 function renderCalList() {
   const el = document.getElementById('cal-body');
   const monthStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
-  const evs = Object.entries(calEvents).filter(([,e]) => e.date?.startsWith(monthStr))
-    .sort((a,b) => a[1].date.localeCompare(b[1].date));
+  const evs = Object.entries(calEvents).filter(([,e]) => e.date?.startsWith(monthStr)).sort((a,b) => a[1].date.localeCompare(b[1].date));
   if (!evs.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-calendar-xmark"></i><p>Nenhum evento neste mês.</p></div>'; return; }
   el.innerHTML = evs.map(([id,e]) => {
     const acc = e.clientId ? accounts[e.clientId] : null;
     const color = e.source==='ativo' ? 'var(--red)' : (acc ? areaColor(acc.area) : '#888');
     return `<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
       <div style="width:8px;height:40px;border-radius:4px;background:${color};flex-shrink:0;"></div>
-      <div style="flex:1;">
-        <div style="font-weight:700;">${e.title}</div>
+      <div style="flex:1;"><div style="font-weight:700;">${e.title}</div>
         <div style="font-size:12px;color:var(--text-sub);">${fmtDate(e.date)} · ${e.type||'—'} ${acc?'· '+acc.razao:''}</div>
         ${e.obs?`<div style="font-size:12px;color:var(--text-sub);">${e.obs}</div>`:''}
       </div>
@@ -1686,7 +1207,7 @@ function openCalModal(id=null, dateStr=null) {
 
 async function saveCalEvent() {
   const title = document.getElementById('cal-title').value.trim();
-  const date  = document.getElementById('cal-date').value;
+  const date = document.getElementById('cal-date').value;
   if (!title || !date) { toast('Título e data são obrigatórios.', 'error'); return; }
   const data = { title, date, type: document.getElementById('cal-type').value, clientId: document.getElementById('cal-client').value, obs: document.getElementById('cal-obs').value };
   if (editingCalId) {
@@ -1710,9 +1231,6 @@ async function deleteCalEvent(id) {
   });
 }
 
-/* ══════════════════════════════════════════════
-   ── ABA 3: FRESHDESK ──
-══════════════════════════════════════════════ */
 const FD_STEPS = ['Encaminhado Internamente','Respondido','Finalizado Internamente'];
 
 function renderFdCategories() {
@@ -1727,11 +1245,7 @@ function renderFdCategories() {
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);';
     row.innerHTML = `<div class="color-swatch" style="background:${c.color}"></div><span style="flex:1;font-size:13px;">${c.name}</span><button class="btn btn-danger btn-sm" onclick="deleteCat('${id}')"><i class="fa fa-trash"></i></button>`;
     el.appendChild(row);
-    [sel,tsel].forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = id; opt.textContent = c.name;
-      s.appendChild(opt);
-    });
+    [sel,tsel].forEach(s => { const opt = document.createElement('option'); opt.value = id; opt.textContent = c.name; s.appendChild(opt); });
   });
 }
 
@@ -1763,12 +1277,7 @@ function openTicketModal() {
 async function saveTicket() {
   const title = document.getElementById('ticket-title').value.trim();
   if (!title) { toast('Título obrigatório.','error'); return; }
-  const data = {
-    title, desc: document.getElementById('ticket-desc').value,
-    catId: document.getElementById('ticket-cat').value,
-    date: document.getElementById('ticket-date').value,
-    steps: [false,false,false], createdAt: Date.now()
-  };
+  const data = { title, desc: document.getElementById('ticket-desc').value, catId: document.getElementById('ticket-cat').value, date: document.getElementById('ticket-date').value, steps: [false,false,false], createdAt: Date.now() };
   const ref = await fbPush('tickets', data);
   tickets[ref.key] = data;
   closeModal('modal-ticket');
@@ -1784,13 +1293,7 @@ function renderTickets() {
   if (filterCat) list = list.filter(([,t]) => t.catId === filterCat);
   if (filterStatus === 'open') list = list.filter(([,t]) => !t.steps?.every(Boolean));
   if (filterStatus === 'done') list = list.filter(([,t]) => t.steps?.every(Boolean));
-  // Sort: open first, then done
-  list.sort((a,b) => {
-    const da = a[1].steps?.every(Boolean);
-    const db = b[1].steps?.every(Boolean);
-    if (da !== db) return da ? 1 : -1;
-    return b[1].createdAt - a[1].createdAt;
-  });
+  list.sort((a,b) => { const da = a[1].steps?.every(Boolean), db = b[1].steps?.every(Boolean); if (da !== db) return da ? 1 : -1; return b[1].createdAt - a[1].createdAt; });
   if (!list.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-ticket"></i><p>Nenhum ticket encontrado.</p></div>'; return; }
   el.innerHTML = '';
   list.forEach(([id,t]) => {
@@ -1802,19 +1305,9 @@ function renderTickets() {
     const stepsHtml = FD_STEPS.map((s,i) => {
       const isDone = t.steps?.[i];
       const canClick = i === 0 || t.steps?.[i-1];
-      return `<button class="step-btn${isDone?' done':canClick?' active-step':''}" onclick="toggleStep('${id}',${i})" ${canClick||isDone?'':'disabled'}>${isDone?'✓ ':''} ${s}</button>`;
+      return `<button class="step-btn${isDone?' done':canClick?' active-step':''}" onclick="toggleStep('${id}',${i})" ${canClick||isDone?'':'disabled'}>${isDone?'✓ ':''}${s}</button>`;
     }).join('');
-    card.innerHTML = `
-      <div class="ticket-header">
-        ${cat?`<div class="color-swatch" style="background:${cat.color}"></div>`:''}
-        <div class="ticket-title">${t.title}</div>
-        ${done?'<span class="badge" style="background:var(--green)22;color:var(--green)">✓ Finalizado</span>':''}
-        <button class="btn btn-danger btn-sm" onclick="deleteTicket('${id}')"><i class="fa fa-trash"></i></button>
-      </div>
-      ${t.desc?`<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">${t.desc}</div>`:''}
-      <div class="ticket-steps">${stepsHtml}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Aberto em ${fmtDate(t.date)}</div>
-    `;
+    card.innerHTML = `<div class="ticket-header">${cat?`<div class="color-swatch" style="background:${cat.color}"></div>`:''}<div class="ticket-title">${t.title}</div>${done?'<span class="badge" style="background:var(--green)22;color:var(--green)">✓ Finalizado</span>':''}<button class="btn btn-danger btn-sm" onclick="deleteTicket('${id}')"><i class="fa fa-trash"></i></button></div>${t.desc?`<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">${t.desc}</div>`:''}<div class="ticket-steps">${stepsHtml}</div><div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Aberto em ${fmtDate(t.date)}</div>`;
     el.appendChild(card);
   });
 }
@@ -1823,7 +1316,6 @@ async function toggleStep(id, idx) {
   if (!tickets[id]) return;
   const steps = [...(tickets[id].steps || [false,false,false])];
   steps[idx] = !steps[idx];
-  // If unchecking, uncheck all after
   if (!steps[idx]) { for(let i=idx+1;i<3;i++) steps[i]=false; }
   await fbUpdate(`tickets/${id}`, { steps });
   tickets[id].steps = steps;
@@ -1839,9 +1331,6 @@ async function deleteTicket(id) {
   });
 }
 
-/* ══════════════════════════════════════════════
-   ── ABA 4: ATIVOS ──
-══════════════════════════════════════════════ */
 let schedTargetId = null;
 
 function handleXlsxUpload(input) {
@@ -1852,8 +1341,6 @@ function handleXlsxUpload(input) {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json(ws, {defval:''});
     if (!json.length) { toast('Planilha vazia ou inválida.','error'); return; }
-    // Open client association dialog
-    const clientName = Object.values(accounts)[0]?.razao || 'Sem cliente';
     const clientId = await pickClient();
     const id = uid();
     const data = { rows: json, clientId: clientId||'', fileName: file.name, uploadedAt: Date.now(), schedules: {} };
@@ -1861,7 +1348,7 @@ function handleXlsxUpload(input) {
     ativos[id] = data;
     renderAtivos();
     toast(`${json.length} registros importados!`, 'success');
-    input.value = '';
+    if (input.value !== undefined) input.value = '';
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1871,11 +1358,11 @@ function pickClient() {
     const sel = document.createElement('select');
     sel.innerHTML = '<option value="">— Sem cliente —</option>';
     Object.entries(accounts).forEach(([id,a]) => { sel.innerHTML += `<option value="${id}">${a.razao}</option>`; });
-    confirm('Vincular a um cliente?', () => resolve(sel.value));
     document.getElementById('confirm-msg').innerHTML = '';
     document.getElementById('confirm-msg').appendChild(sel);
     document.getElementById('confirm-ok-btn').textContent = 'Vincular';
     document.getElementById('confirm-ok-btn').onclick = () => { closeModal('modal-confirm'); resolve(sel.value); };
+    openModal('modal-confirm');
   });
 }
 
@@ -1884,46 +1371,30 @@ function renderAtivos() {
   const el = document.getElementById('ativos-list');
   const filterClient = document.getElementById('ativos-filter-client')?.value || '';
   const search = (document.getElementById('ativos-search')?.value || '').toLowerCase();
-  const list = Object.entries(ativos).filter(([,a]) => {
-    if (filterClient && a.clientId !== filterClient) return false;
-    return true;
-  });
-  if (!list.length) {
-    el.innerHTML = '<div class="empty-state"><i class="fa fa-users"></i><p>Nenhuma planilha importada.</p></div>'; return;
-  }
+  const list = Object.entries(ativos).filter(([,a]) => !filterClient || a.clientId === filterClient);
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-users"></i><p>Nenhuma planilha importada.</p></div>'; return; }
   el.innerHTML = '';
   list.forEach(([id, a]) => {
     const client = a.clientId ? accounts[a.clientId] : null;
     const cols = a.rows?.[0] ? Object.keys(a.rows[0]) : [];
-    const filteredRows = (a.rows||[]).filter(row =>
-      !search || Object.values(row).some(v => String(v).toLowerCase().includes(search))
-    );
+    const filteredRows = (a.rows||[]).filter(row => !search || Object.values(row).some(v => String(v).toLowerCase().includes(search)));
     const block = document.createElement('div');
     block.className = 'card';
     block.style.marginBottom = '20px';
-    block.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-        <i class="fa fa-file-excel" style="color:var(--green)"></i>
-        <strong>${a.fileName}</strong>
-        <span style="font-size:11px;color:var(--text-sub);">· ${a.rows?.length||0} registros</span>
-        ${client?`<span class="badge" style="background:${areaColor(client.area)}22;color:${areaColor(client.area)}">${client.razao}</span>`:''}
-        <div style="margin-left:auto;display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick="openAtivSched('${id}')"><i class="fa fa-calendar-plus"></i> Programar</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteAtivo('${id}')"><i class="fa fa-trash"></i></button>
-        </div>
-      </div>
+    block.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <i class="fa fa-file-excel" style="color:var(--green)"></i>
+      <strong>${a.fileName}</strong>
+      <span style="font-size:11px;color:var(--text-sub);">· ${a.rows?.length||0} registros</span>
+      ${client?`<span class="badge" style="background:${areaColor(client.area)}22;color:${areaColor(client.area)}">${client.razao}</span>`:''}
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="openAtivSched('${id}')"><i class="fa fa-calendar-plus"></i> Programar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteAtivo('${id}')"><i class="fa fa-trash"></i></button>
+      </div></div>
       <div class="table-wrap" style="max-height:320px;overflow:auto;">
-        <table>
-          <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}<th>Ações</th></tr></thead>
-          <tbody>${filteredRows.slice(0,100).map((row,ri) => `
-            <tr>${cols.map(c=>`<td>${row[c]}</td>`).join('')}
-            <td><button class="btn btn-ghost btn-sm" onclick="openAtivSched('${id}',${ri})"><i class="fa fa-calendar-plus"></i></button></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+        <table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+        <tbody>${filteredRows.slice(0,100).map(row=>`<tr>${cols.map(c=>`<td>${row[c]}</td>`).join('')}</tr>`).join('')}</tbody></table>
       </div>
-      ${filteredRows.length>100?`<div style="font-size:12px;color:var(--text-sub);padding:8px;">Mostrando 100 de ${filteredRows.length} registros. Use a busca para filtrar.</div>`:''}
-    `;
+      ${filteredRows.length>100?`<div style="font-size:12px;color:var(--text-sub);padding:8px;">Mostrando 100 de ${filteredRows.length} registros.</div>`:''}`;
     el.appendChild(block);
   });
 }
@@ -1932,13 +1403,11 @@ function populateAtivoClientFilter() {
   const sel = document.getElementById('ativos-filter-client');
   if (!sel) return;
   sel.innerHTML = '<option value="">Todos os clientes</option>';
-  Object.entries(accounts).forEach(([id,a]) => {
-    sel.innerHTML += `<option value="${id}">${a.razao}</option>`;
-  });
+  Object.entries(accounts).forEach(([id,a]) => { sel.innerHTML += `<option value="${id}">${a.razao}</option>`; });
 }
 
-function openAtivSched(ativoId, rowIdx=null) {
-  schedTargetId = { ativoId, rowIdx };
+function openAtivSched(ativoId) {
+  schedTargetId = { ativoId };
   document.getElementById('sched-date').value = '';
   document.getElementById('sched-obs').value = '';
   openModal('modal-ativo-sched');
@@ -1947,7 +1416,7 @@ function openAtivSched(ativoId, rowIdx=null) {
 async function saveAtivoSched() {
   const type = document.getElementById('sched-type').value;
   const date = document.getElementById('sched-date').value;
-  const obs  = document.getElementById('sched-obs').value;
+  const obs = document.getElementById('sched-obs').value;
   if (!date) { toast('Data obrigatória.','error'); return; }
   const { ativoId } = schedTargetId;
   const a = ativos[ativoId];
@@ -1968,27 +1437,20 @@ async function deleteAtivo(id) {
   });
 }
 
-// Drag & drop for xlsx
 document.getElementById('xlsx-drop-zone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
 document.getElementById('xlsx-drop-zone').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
 document.getElementById('xlsx-drop-zone').addEventListener('drop', e => {
   e.preventDefault(); e.currentTarget.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  const fake = { files:[file] };
-  handleXlsxUpload(fake);
+  const file = e.dataTransfer.files[0]; if (!file) return;
+  handleXlsxUpload({ files:[file] });
 });
 
-/* ══════════════════════════════════════════════
-   ── ABA 5: DOCUMENTOS ──
-══════════════════════════════════════════════ */
 let pendingDocFile = null;
 
 function handleDocUpload(input) {
   const file = input.files[0]; if (!file) return;
   pendingDocFile = file;
   document.getElementById('doc-name-input').value = file.name.replace(/\.[^.]+$/,'');
-  // populate client select
   const sel = document.getElementById('doc-client-select');
   sel.innerHTML = '<option value="">— Sem cliente —</option>';
   Object.entries(accounts).forEach(([id,a]) => { sel.innerHTML += `<option value="${id}">${a.razao}</option>`; });
@@ -2002,14 +1464,8 @@ async function confirmDocSave() {
   const clientId = document.getElementById('doc-client-select').value;
   const reader = new FileReader();
   reader.onload = async e => {
-    const data = {
-      name, clientId, fileName: pendingDocFile.name,
-      mimeType: pendingDocFile.type,
-      size: pendingDocFile.size,
-      uploadedAt: Date.now(),
-      base64: e.target.result
-    };
-    if (data.size > 4 * 1024 * 1024) { toast('Arquivo muito grande (máx 4MB para Firebase).','error'); return; }
+    const data = { name, clientId, fileName: pendingDocFile.name, mimeType: pendingDocFile.type, size: pendingDocFile.size, uploadedAt: Date.now(), base64: e.target.result };
+    if (data.size > 4 * 1024 * 1024) { toast('Arquivo muito grande (máx 4MB).','error'); return; }
     const ref = await fbPush('docs', data);
     docs[ref.key] = data;
     closeModal('modal-doc-name');
@@ -2024,26 +1480,18 @@ function renderDocs() {
   const el = document.getElementById('docs-list');
   const search = (document.getElementById('docs-search')?.value||'').toLowerCase();
   const filterClient = document.getElementById('docs-filter-client')?.value||'';
-  const list = Object.entries(docs).filter(([,d]) => {
-    if (filterClient && d.clientId !== filterClient) return false;
-    return d.name.toLowerCase().includes(search);
-  }).sort((a,b) => b[1].uploadedAt - a[1].uploadedAt);
+  const list = Object.entries(docs).filter(([,d]) => (!filterClient || d.clientId === filterClient) && d.name.toLowerCase().includes(search)).sort((a,b) => b[1].uploadedAt - a[1].uploadedAt);
   if (!list.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open"></i><p>Nenhum documento encontrado.</p></div>'; return; }
   el.innerHTML = list.map(([id,d]) => {
     const client = d.clientId ? accounts[d.clientId] : null;
     const ext = d.fileName?.split('.').pop()?.toUpperCase() || 'FILE';
     const size = d.size > 1024*1024 ? (d.size/1024/1024).toFixed(1)+'MB' : (d.size/1024).toFixed(0)+'KB';
-    return `
-      <div class="doc-card">
-        <div class="doc-icon"><i class="fa fa-file"></i></div>
-        <div class="doc-info">
-          <div class="doc-name">${d.name}</div>
-          <div class="doc-meta">${ext} · ${size} · ${fmtDate(new Date(d.uploadedAt).toISOString().split('T')[0])} ${client?'· '+client.razao:''}</div>
-        </div>
-        <a class="btn btn-ghost btn-sm" href="${d.base64}" download="${d.fileName}"><i class="fa fa-download"></i></a>
-        <button class="btn btn-danger btn-sm" onclick="deleteDoc('${id}')"><i class="fa fa-trash"></i></button>
-      </div>
-    `;
+    return `<div class="doc-card">
+      <div class="doc-icon"><i class="fa fa-file"></i></div>
+      <div class="doc-info"><div class="doc-name">${d.name}</div><div class="doc-meta">${ext} · ${size} · ${fmtDate(new Date(d.uploadedAt).toISOString().split('T')[0])} ${client?'· '+client.razao:''}</div></div>
+      <a class="btn btn-ghost btn-sm" href="${d.base64}" download="${d.fileName}"><i class="fa fa-download"></i></a>
+      <button class="btn btn-danger btn-sm" onclick="deleteDoc('${id}')"><i class="fa fa-trash"></i></button>
+    </div>`;
   }).join('');
 }
 
@@ -2056,7 +1504,6 @@ async function deleteDoc(id) {
   });
 }
 
-// Drag & drop for docs
 document.getElementById('doc-drop-zone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
 document.getElementById('doc-drop-zone').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
 document.getElementById('doc-drop-zone').addEventListener('drop', e => {
@@ -2070,9 +1517,6 @@ document.getElementById('doc-drop-zone').addEventListener('drop', e => {
   openModal('modal-doc-name');
 });
 
-/* ══════════════════════════════════════════════
-   POPULATE SELECTS
-══════════════════════════════════════════════ */
 function populateClientSelects() {
   ['docs-filter-client','doc-client-select','cal-client'].forEach(id => {
     const sel = document.getElementById(id);
@@ -2088,23 +1532,32 @@ function populateClientSelects() {
   });
 }
 
-/* ══════════════════════════════════════════════
-   BOOT
-══════════════════════════════════════════════ */
-window.addEventListener('DOMContentLoaded', async () => {
-  initFirebase();
-  // Check if Firebase is configured
-  const isConfigured = FIREBASE_CONFIG.apiKey !== 'COLE_SEU_API_KEY_AQUI';
+function showLogin(errorMsg) {
   document.getElementById('loading').style.display = 'none';
-  if (!isConfigured) {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('login-error').textContent = '⚠ Firebase não configurado. Siga o guia no README.';
-    document.getElementById('login-error').style.color = 'orange';
-    // Still allow UI preview
-  }
   document.getElementById('login-screen').style.display = 'flex';
-  // Enter key on login
-  document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+  if (errorMsg) {
+    document.getElementById('login-error').textContent = errorMsg;
+    document.getElementById('login-error').style.color = 'orange';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const bootTimeout = setTimeout(() => showLogin(), 300);
+  try {
+    initFirebase();
+  } catch(e) {
+    clearTimeout(bootTimeout);
+    showLogin('⚠ Erro ao inicializar o Firebase. Verifique as credenciais no código.');
+    return;
+  }
+  const isConfigured = FIREBASE_CONFIG.apiKey !== 'COLE_SEU_API_KEY_AQUI';
+  clearTimeout(bootTimeout);
+  if (!isConfigured) {
+    showLogin('⚠ Firebase não configurado. Siga o guia no README para inserir suas credenciais.');
+  } else {
+    showLogin();
+  }
+  document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 });
 </script>
 </body>
