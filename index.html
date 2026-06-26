@@ -1013,30 +1013,33 @@ const ADMIN_DEFAULT_PASS = 'Casaca';
 let currentUser = null;
 let pendingSetPassUser = null;
 
+// Firebase não aceita "." nas chaves — converte para "_"
+function toKey(u) { return u.replace(/\./g, '_'); }
+function fromKey(k) { return k; } // display name vem do campo .name
+
 async function loadUsers() {
-  // Tenta Firebase; se falhar, usa localStorage como fallback
-  const LS_KEY = 'brunel_users_v1';
+  const LS_KEY = 'brunel_users_v2';
   function lsGet() { try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch(e) { return null; } }
   function lsSave(u) { try { localStorage.setItem(LS_KEY, JSON.stringify(u)); } catch(e) {} }
 
   if (firebaseReady) {
     try {
-      let users = await Promise.race([
+      let raw = await Promise.race([
         fbGet('users'),
-        new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+        new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 6000))
       ]);
-      if (!users) {
+      if (!raw) {
         const seed = {};
         DEFAULT_USERS.forEach(u => {
-          seed[u] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
+          seed[toKey(u)] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
         });
         await fbSet('users', seed);
-        users = seed;
+        raw = seed;
       }
-      lsSave(users);
-      return users;
+      lsSave(raw);
+      return raw;
     } catch(e) {
-      console.warn('Firebase lento/falhou, usando localStorage:', e);
+      console.warn('Firebase falhou, usando localStorage:', e);
     }
   }
   // Fallback localStorage
@@ -1044,7 +1047,7 @@ async function loadUsers() {
   if (!users) {
     users = {};
     DEFAULT_USERS.forEach(u => {
-      users[u] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
+      users[toKey(u)] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
     });
     lsSave(users);
   }
@@ -1052,7 +1055,7 @@ async function loadUsers() {
 }
 
 async function saveUsers(users) {
-  try { localStorage.setItem('brunel_users_v1', JSON.stringify(users)); } catch(e) {}
+  try { localStorage.setItem('brunel_users_v2', JSON.stringify(users)); } catch(e) {}
   if (firebaseReady) {
     try { await fbSet('users', users); } catch(e) { console.warn('Firebase save falhou:', e); }
   }
@@ -1079,7 +1082,8 @@ async function doLogin() {
 
   try {
     const users = await loadUsers();
-    const rec = users[user];
+    const key = toKey(user);
+    const rec = users[key];
     if (!rec) { errEl.textContent = 'Usuário não encontrado.'; return; }
 
     if (rec.mustSetPass) {
@@ -1110,8 +1114,9 @@ async function confirmSetPass() {
   if (p1.length < 4) { document.getElementById('setpass-error').textContent = 'Mínimo 4 caracteres.'; return; }
   if (p1 !== p2) { document.getElementById('setpass-error').textContent = 'As senhas não coincidem.'; return; }
   const users = await loadUsers();
-  users[pendingSetPassUser].passwordHash = hashPass(p1);
-  users[pendingSetPassUser].mustSetPass = false;
+  const key = toKey(pendingSetPassUser);
+  users[key].passwordHash = hashPass(p1);
+  users[key].mustSetPass = false;
   await saveUsers(users);
   closeModal('modal-setpass');
   loginSuccess(pendingSetPassUser);
@@ -1143,8 +1148,8 @@ async function openAdmin() {
     const row = document.createElement('div');
     row.className = 'user-row';
     row.innerHTML = `
-      <div class="user-avatar">${key[0]}</div>
-      <div style="flex:1;"><div style="font-weight:600;">${key}</div>
+      <div class="user-avatar">${(u.name||key)[0]}</div>
+      <div style="flex:1;"><div style="font-weight:600;">${u.name||key}</div>
         <div style="font-size:11px;color:var(--text-sub);">${u.mustSetPass ? '⚠ Senha não definida' : '✓ Senha ativa'}</div>
       </div>
       ${key !== 'ADMIN' ? `<button class="btn btn-ghost btn-sm" onclick="resetUserPass('${key}')"><i class="fa fa-rotate-left"></i> Resetar Senha</button>` : ''}
@@ -1154,9 +1159,14 @@ async function openAdmin() {
   openModal('modal-admin');
 }
 
-async function resetUserPass(user) {
-  await fbUpdate(`users/${user}`, { passwordHash: null, mustSetPass: true });
-  toast(`Senha de ${user} resetada com sucesso.`, 'success');
+async function resetUserPass(key) {
+  const users = await loadUsers();
+  if (users[key]) {
+    users[key].passwordHash = null;
+    users[key].mustSetPass = true;
+    await saveUsers(users);
+  }
+  toast(`Senha resetada com sucesso.`, 'success');
   openAdmin();
 }
 
