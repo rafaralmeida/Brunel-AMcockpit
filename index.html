@@ -1014,21 +1014,51 @@ let currentUser = null;
 let pendingSetPassUser = null;
 
 async function loadUsers() {
-  const users = await fbGet('users');
+  // Tenta Firebase; se falhar, usa localStorage como fallback
+  const LS_KEY = 'brunel_users_v1';
+  function lsGet() { try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch(e) { return null; } }
+  function lsSave(u) { try { localStorage.setItem(LS_KEY, JSON.stringify(u)); } catch(e) {} }
+
+  if (firebaseReady) {
+    try {
+      let users = await Promise.race([
+        fbGet('users'),
+        new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+      ]);
+      if (!users) {
+        const seed = {};
+        DEFAULT_USERS.forEach(u => {
+          seed[u] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
+        });
+        await fbSet('users', seed);
+        users = seed;
+      }
+      lsSave(users);
+      return users;
+    } catch(e) {
+      console.warn('Firebase lento/falhou, usando localStorage:', e);
+    }
+  }
+  // Fallback localStorage
+  let users = lsGet();
   if (!users) {
-    // Seed users
-    const seed = {};
+    users = {};
     DEFAULT_USERS.forEach(u => {
-      seed[u] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
+      users[u] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
     });
-    await fbSet('users', seed);
-    return seed;
+    lsSave(users);
   }
   return users;
 }
 
+async function saveUsers(users) {
+  try { localStorage.setItem('brunel_users_v1', JSON.stringify(users)); } catch(e) {}
+  if (firebaseReady) {
+    try { await fbSet('users', users); } catch(e) { console.warn('Firebase save falhou:', e); }
+  }
+}
+
 function hashPass(p) {
-  // Simple hash — for production use bcrypt or Firebase Auth
   let h = 0;
   for (let i = 0; i < p.length; i++) { h = (Math.imul(31, h) + p.charCodeAt(i)) | 0; }
   return 'h' + Math.abs(h).toString(36);
@@ -1037,49 +1067,56 @@ function hashPass(p) {
 async function doLogin() {
   const user = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
-  document.getElementById('login-error').textContent = '';
-  if (!user) { document.getElementById('login-error').textContent = 'Selecione um usuário.'; return; }
-  if (!pass) { document.getElementById('login-error').textContent = 'Digite a senha.'; return; }
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  errEl.style.color = 'var(--red)';
+  if (!user) { errEl.textContent = 'Selecione um usuário.'; return; }
+  if (!pass) { errEl.textContent = 'Digite a senha.'; return; }
 
-  if (!firebaseReady) {
-    const el = document.getElementById('login-error');
-    el.textContent = '⚠ Firebase não configurado. Insira as credenciais no código e recarregue a página.';
-    el.style.color = 'orange';
-    return;
-  }
+  const btn = document.querySelector('#login-screen .btn-primary');
+  btn.textContent = 'Aguarde…';
+  btn.disabled = true;
 
-  const users = await loadUsers();
-  const rec = users[user];
-  if (!rec) { document.getElementById('login-error').textContent = 'Usuário não encontrado.'; return; }
+  try {
+    const users = await loadUsers();
+    const rec = users[user];
+    if (!rec) { errEl.textContent = 'Usuário não encontrado.'; return; }
 
-  if (rec.mustSetPass) {
-    // Allow login with default "pass" = username for first access check
-    // Admin uses "Casaca", others have null password (any value triggers set pass)
-    if (user === 'ADMIN' && hashPass(pass) !== rec.passwordHash) {
-      document.getElementById('login-error').textContent = 'Senha incorreta.';
+    if (rec.mustSetPass) {
+      if (user === 'ADMIN' && hashPass(pass) !== rec.passwordHash) {
+        errEl.textContent = 'Senha incorreta.'; return;
+      }
+      pendingSetPassUser = user;
+      openModal('modal-setpass');
       return;
     }
-    pendingSetPassUser = user;
-    openModal('modal-setpass');
-    return;
-  }
 
-  if (hashPass(pass) !== rec.passwordHash) {
-    document.getElementById('login-error').textContent = 'Senha incorreta.';
-    return;
+    if (hashPass(pass) !== rec.passwordHash) {
+      errEl.textContent = 'Senha incorreta.'; return;
+    }
+    loginSuccess(user);
+  } catch(e) {
+    errEl.textContent = 'Erro ao conectar. Tente novamente.';
+    console.error(e);
+  } finally {
+    btn.textContent = 'Entrar';
+    btn.disabled = false;
   }
-  loginSuccess(user);
 }
 
 async function confirmSetPass() {
   const p1 = document.getElementById('new-pass1').value;
   const p2 = document.getElementById('new-pass2').value;
-  if (p1.length < 4) { document.getElementById('setpass-error').textContent = 'Senha deve ter ao menos 4 caracteres.'; return; }
+  if (p1.length < 4) { document.getElementById('setpass-error').textContent = 'Mínimo 4 caracteres.'; return; }
   if (p1 !== p2) { document.getElementById('setpass-error').textContent = 'As senhas não coincidem.'; return; }
-  await fbUpdate(`users/${pendingSetPassUser}`, { passwordHash: hashPass(p1), mustSetPass: false });
+  const users = await loadUsers();
+  users[pendingSetPassUser].passwordHash = hashPass(p1);
+  users[pendingSetPassUser].mustSetPass = false;
+  await saveUsers(users);
   closeModal('modal-setpass');
   loginSuccess(pendingSetPassUser);
 }
+
 
 function loginSuccess(user) {
   currentUser = user;
