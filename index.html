@@ -1,0 +1,2111 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Brunel Cockpit</title>
+
+<!-- ═══════════════════════════════════════════
+     CDN DEPENDENCIES
+═══════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+<style>
+/* ═══════════════════════════════════════════
+   CSS VARIABLES — TEMA CLARO E ESCURO
+═══════════════════════════════════════════ */
+:root {
+  --yellow: #FFFF00;
+  --yellow-dim: #CCCC00;
+  --yellow-soft: rgba(255,255,0,0.12);
+
+  /* Dark theme (default) */
+  --bg-base:    #0d0d0d;
+  --bg-surface: #161616;
+  --bg-card:    #1e1e1e;
+  --bg-input:   #252525;
+  --bg-hover:   #2a2a2a;
+  --border:     #2e2e2e;
+  --text-main:  #f0f0f0;
+  --text-sub:   #888888;
+  --text-muted: #555555;
+  --sidebar-w:  220px;
+  --header-h:   56px;
+  --radius:     8px;
+  --shadow:     0 2px 12px rgba(0,0,0,0.5);
+  --green:      #22c55e;
+  --red:        #ef4444;
+  --blue:       #3b82f6;
+}
+
+[data-theme="light"] {
+  --bg-base:    #f4f4f4;
+  --bg-surface: #ffffff;
+  --bg-card:    #ffffff;
+  --bg-input:   #f0f0f0;
+  --bg-hover:   #e8e8e8;
+  --border:     #d0d0d0;
+  --text-main:  #111111;
+  --text-sub:   #555555;
+  --text-muted: #999999;
+  --shadow:     0 2px 12px rgba(0,0,0,0.1);
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg-base); color: var(--text-main); font-size: 14px; }
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+a { color: var(--yellow); text-decoration: none; }
+ul { list-style: none; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ═══════════════════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════════════════ */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-base);
+}
+.login-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px 36px;
+  width: 360px;
+  box-shadow: var(--shadow);
+}
+.login-logo {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 32px;
+}
+.login-logo .logo-mark {
+  width: 36px; height: 36px;
+  background: var(--yellow);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 18px; color: #000;
+}
+.login-logo span { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+.login-box h2 { font-size: 15px; font-weight: 600; margin-bottom: 20px; color: var(--text-sub); }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-sub); margin-bottom: 6px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 10px 12px;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-main); font-size: 14px;
+  outline: none; transition: border-color 0.2s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--yellow);
+}
+.form-group select option { background: var(--bg-card); }
+.btn-primary {
+  width: 100%; padding: 11px;
+  background: var(--yellow); color: #000;
+  font-weight: 700; font-size: 14px;
+  border: none; border-radius: var(--radius);
+  transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.login-error { color: var(--red); font-size: 12px; margin-top: 8px; text-align: center; }
+
+/* ═══════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════ */
+#app { display: none; height: 100vh; flex-direction: column; }
+#app.visible { display: flex; }
+
+/* Header */
+#header {
+  height: var(--header-h);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 16px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+.header-logo { display: flex; align-items: center; gap: 8px; width: var(--sidebar-w); }
+.header-logo .logo-mark { width: 28px; height: 28px; background: var(--yellow); border-radius: 5px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; color: #000; }
+.header-logo span { font-weight: 700; font-size: 15px; letter-spacing: -0.3px; }
+.header-spacer { flex: 1; }
+.header-user { display: flex; align-items: center; gap: 8px; color: var(--text-sub); font-size: 13px; }
+.header-user strong { color: var(--text-main); }
+.icon-btn { background: none; border: none; color: var(--text-sub); padding: 6px; border-radius: 6px; transition: all 0.15s; display: flex; align-items: center; }
+.icon-btn:hover { background: var(--bg-hover); color: var(--text-main); }
+
+/* Body layout */
+#body { display: flex; margin-top: var(--header-h); height: calc(100vh - var(--header-h)); }
+
+/* Sidebar */
+#sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  position: fixed; top: var(--header-h); bottom: 0; left: 0;
+  z-index: 90; overflow-y: auto;
+  padding: 12px 0;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; color: var(--text-sub);
+  border: none; background: none; width: 100%;
+  text-align: left; font-size: 13px; font-weight: 500;
+  border-left: 3px solid transparent;
+  transition: all 0.15s; cursor: pointer;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text-main); }
+.nav-item.active { color: var(--yellow); border-left-color: var(--yellow); background: var(--yellow-soft); }
+.nav-item i { width: 16px; text-align: center; }
+
+/* Main content */
+#main {
+  margin-left: var(--sidebar-w);
+  flex: 1; overflow-y: auto;
+  padding: 24px;
+}
+
+/* ═══════════════════════════════════════════
+   TABS (pages)
+═══════════════════════════════════════════ */
+.tab-page { display: none; animation: fadeIn 0.2s ease; }
+.tab-page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════════
+   COMMON COMPONENTS
+═══════════════════════════════════════════ */
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-title { font-size: 20px; font-weight: 700; }
+.page-subtitle { font-size: 13px; color: var(--text-sub); margin-top: 2px; }
+
+.btn { padding: 8px 14px; border-radius: var(--radius); font-size: 13px; font-weight: 600; border: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.btn-yellow { background: var(--yellow); color: #000; }
+.btn-yellow:hover { opacity: 0.88; }
+.btn-ghost { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); }
+.btn-ghost:hover { border-color: var(--yellow); color: var(--yellow); }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-danger:hover { opacity: 0.88; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-green { background: var(--green); color: #fff; }
+
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.card + .card { margin-top: 12px; }
+
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; }
+th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-sub); background: var(--bg-surface); }
+tr:hover td { background: var(--bg-hover); }
+.table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; overflow-x: auto; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000;
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; width: 100%; max-width: 560px;
+  max-height: 90vh; overflow-y: auto; padding: 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.modal-lg { max-width: 860px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-title { font-size: 17px; font-weight: 700; }
+.modal-close { background: none; border: none; color: var(--text-sub); font-size: 20px; cursor: pointer; line-height: 1; }
+.modal-close:hover { color: var(--text-main); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+.section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-sub); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+input[type="checkbox"] { accent-color: var(--yellow); width: 15px; height: 15px; }
+
+/* Toast */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px; min-width: 260px;
+  display: flex; align-items: center; gap: 10px; font-size: 13px;
+  box-shadow: var(--shadow); animation: slideUp 0.3s ease;
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+.toast.info { border-left: 3px solid var(--yellow); }
+@keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+/* Loading overlay */
+#loading {
+  position: fixed; inset: 0; background: var(--bg-base);
+  z-index: 9998; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px;
+}
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════
+   CONTAS
+═══════════════════════════════════════════ */
+.account-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.account-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; cursor: pointer;
+  transition: all 0.15s; border-left: 3px solid var(--yellow);
+}
+.account-card:hover { border-color: var(--yellow); transform: translateY(-2px); box-shadow: var(--shadow); }
+.account-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.account-card .cnpj { font-size: 12px; color: var(--text-sub); font-family: monospace; }
+.account-card .area { font-size: 11px; margin-top: 8px; }
+
+/* Account detail */
+#account-detail { display: none; }
+#account-detail.active { display: block; }
+.detail-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.detail-tab { padding: 8px 16px; border: none; background: none; color: var(--text-sub); font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.detail-tab.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+
+/* Benefits */
+.benefit-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.benefit-row:last-child { border-bottom: none; }
+.benefit-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--yellow-soft); display: flex; align-items: center; justify-content: center; color: var(--yellow); flex-shrink: 0; }
+.benefit-label { font-size: 12px; color: var(--text-sub); }
+.benefit-value { font-weight: 600; font-size: 14px; }
+
+/* Org tree */
+#org-container { width: 100%; height: 500px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); position: relative; }
+.org-node {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; min-width: 160px; max-width: 200px;
+  cursor: grab; user-select: none; transition: box-shadow 0.15s;
+  position: absolute;
+}
+.org-node:active { cursor: grabbing; }
+.org-node.dragging { box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 100; opacity: 0.85; }
+.org-node .node-name { font-weight: 700; font-size: 13px; }
+.org-node .node-role { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+.org-node .node-area { font-size: 10px; color: var(--yellow); margin-top: 4px; }
+.org-node .node-actions { display: none; gap: 4px; margin-top: 6px; }
+.org-node:hover .node-actions { display: flex; }
+.org-connector { position: absolute; pointer-events: none; }
+svg#org-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
+
+/* ═══════════════════════════════════════════
+   CALENDÁRIO
+═══════════════════════════════════════════ */
+.cal-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.cal-header h2 { font-size: 18px; font-weight: 700; flex: 1; text-align: center; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day-name { text-align: center; font-size: 11px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; padding: 6px; }
+.cal-cell {
+  min-height: 96px; padding: 6px; border-radius: 6px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 12px; cursor: pointer; transition: border-color 0.15s;
+  overflow: hidden;
+}
+.cal-cell:hover { border-color: var(--yellow); }
+.cal-cell.other-month { opacity: 0.4; }
+.cal-cell.today { border-color: var(--yellow); }
+.cal-cell .day-num { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.cal-event {
+  border-radius: 3px; padding: 2px 5px; font-size: 11px;
+  margin-bottom: 2px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; color: #000; font-weight: 600;
+}
+.cal-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.cal-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.cal-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ═══════════════════════════════════════════
+   FRESHDESK
+═══════════════════════════════════════════ */
+.flow-diagram {
+  display: flex; align-items: center; gap: 0;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;
+  overflow-x: auto;
+}
+.flow-step {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 16px; border-radius: 6px; background: var(--bg-surface);
+  border: 1px solid var(--border); min-width: 140px; text-align: center;
+}
+.flow-step .step-num { font-size: 10px; font-weight: 700; color: var(--yellow); text-transform: uppercase; }
+.flow-step .step-name { font-size: 12px; font-weight: 600; }
+.flow-arrow { color: var(--text-muted); font-size: 20px; padding: 0 8px; }
+
+.ticket-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+  transition: all 0.15s;
+}
+.ticket-card.done { border-left: 3px solid var(--green); }
+.ticket-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ticket-title { font-weight: 700; font-size: 14px; flex: 1; }
+.ticket-steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.step-btn {
+  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--bg-surface);
+  color: var(--text-sub); cursor: pointer; transition: all 0.15s;
+}
+.step-btn.done { background: var(--green); color: #fff; border-color: var(--green); }
+.step-btn.active-step { border-color: var(--yellow); color: var(--yellow); }
+
+/* ═══════════════════════════════════════════
+   ATIVOS
+═══════════════════════════════════════════ */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 40px; text-align: center; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 20px;
+}
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--yellow); background: var(--yellow-soft); }
+.upload-zone i { font-size: 32px; color: var(--text-muted); margin-bottom: 8px; }
+.upload-zone p { color: var(--text-sub); font-size: 13px; }
+.upload-zone span { color: var(--yellow); font-weight: 600; cursor: pointer; }
+
+/* ═══════════════════════════════════════════
+   DOCUMENTOS
+═══════════════════════════════════════════ */
+.doc-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+}
+.doc-icon { width: 38px; height: 38px; border-radius: 8px; background: var(--yellow-soft); display: flex; align-items: center; justify-content: center; color: var(--yellow); flex-shrink: 0; }
+.doc-info { flex: 1; min-width: 0; }
+.doc-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-meta { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+
+/* ═══════════════════════════════════════════
+   ADMIN PANEL
+═══════════════════════════════════════════ */
+.user-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--yellow-soft); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: var(--yellow); }
+
+/* Filters bar */
+.filters-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.filters-bar input, .filters-bar select {
+  padding: 7px 12px; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-main); font-size: 13px; outline: none;
+}
+.filters-bar input:focus, .filters-bar select:focus { border-color: var(--yellow); }
+
+/* Color picker row */
+.color-swatch { width: 20px; height: 20px; border-radius: 4px; display: inline-block; }
+
+/* Tabs within admin */
+.sub-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.sub-tab { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--text-sub); font-size: 12px; font-weight: 600; cursor: pointer; }
+.sub-tab.active { background: var(--yellow); color: #000; border-color: var(--yellow); }
+
+/* empty state */
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+.empty-state i { font-size: 40px; margin-bottom: 10px; display: block; }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  :root { --sidebar-w: 0px; }
+  #sidebar { width: 200px; transform: translateX(-100%); transition: transform 0.25s; }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOADING ═══ -->
+<div id="loading">
+  <div class="spinner"></div>
+  <span style="color:var(--text-sub);font-size:13px;">Conectando ao Brunel Cockpit…</span>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════ -->
+<div id="login-screen" style="display:none;">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-mark">B</div>
+      <span>Brunel Cockpit</span>
+    </div>
+    <h2>Acesso ao sistema</h2>
+    <div class="form-group">
+      <label>Usuário</label>
+      <select id="login-user">
+        <option value="">Selecione…</option>
+        <option>ADMIN</option>
+        <option>D.DINIZ</option>
+        <option>J.TROTTE</option>
+        <option>C.BALDOTTO</option>
+        <option>C.LAGOA</option>
+        <option>LUIZ.O</option>
+        <option>LIVIA.O</option>
+        <option>R.ALMEIDA</option>
+        <option>S.BRAGA</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="Digite sua senha"/>
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ═══ SET PASSWORD (first access) ═══ -->
+<div class="modal-overlay" id="modal-setpass">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Defina sua senha</span>
+    </div>
+    <p style="font-size:13px;color:var(--text-sub);margin-bottom:16px;">Primeiro acesso detectado. Crie uma senha pessoal para continuar.</p>
+    <div class="form-group"><label>Nova Senha</label><input type="password" id="new-pass1" placeholder="Mínimo 4 caracteres"/></div>
+    <div class="form-group"><label>Confirmar Senha</label><input type="password" id="new-pass2" placeholder="Repita a senha"/></div>
+    <div class="login-error" id="setpass-error"></div>
+    <div class="modal-footer">
+      <button class="btn btn-yellow" onclick="confirmSetPass()">Salvar Senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="header-logo">
+      <div class="logo-mark">B</div>
+      <span>Brunel Cockpit</span>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-user">
+      Olá, <strong id="header-username">—</strong>
+    </div>
+    <!-- Theme toggle -->
+    <button class="icon-btn" title="Alternar tema" onclick="toggleTheme()">
+      <i class="fa fa-circle-half-stroke"></i>
+    </button>
+    <!-- Admin panel (only for ADMIN) -->
+    <button class="icon-btn" id="admin-btn" title="Painel Admin" onclick="openAdmin()" style="display:none;">
+      <i class="fa fa-users-cog"></i>
+    </button>
+    <button class="icon-btn" title="Sair" onclick="doLogout()">
+      <i class="fa fa-right-from-bracket"></i>
+    </button>
+  </header>
+
+  <!-- BODY -->
+  <div id="body">
+
+    <!-- SIDEBAR -->
+    <nav id="sidebar">
+      <button class="nav-item active" data-tab="tab-contas" onclick="switchTab('tab-contas',this)">
+        <i class="fa fa-building"></i> Contas
+      </button>
+      <button class="nav-item" data-tab="tab-calendar" onclick="switchTab('tab-calendar',this)">
+        <i class="fa fa-calendar-days"></i> Calendário Sales
+      </button>
+      <button class="nav-item" data-tab="tab-freshdesk" onclick="switchTab('tab-freshdesk',this)">
+        <i class="fa fa-ticket"></i> Freshdesk
+      </button>
+      <button class="nav-item" data-tab="tab-ativos" onclick="switchTab('tab-ativos',this)">
+        <i class="fa fa-users"></i> Ativos
+      </button>
+      <button class="nav-item" data-tab="tab-docs" onclick="switchTab('tab-docs',this)">
+        <i class="fa fa-folder-open"></i> Documentos
+      </button>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main id="main">
+
+      <!-- ═══════════════════════════════════════
+           ABA 1 — CONTAS
+      ═══════════════════════════════════════ -->
+      <div id="tab-contas" class="tab-page active">
+
+        <!-- Account list view -->
+        <div id="accounts-list-view">
+          <div class="page-header">
+            <div>
+              <div class="page-title">Contas</div>
+              <div class="page-subtitle">Clientes e contratos ativos</div>
+            </div>
+            <button class="btn btn-yellow" onclick="openModalAccount()">
+              <i class="fa fa-plus"></i> Nova Conta
+            </button>
+          </div>
+          <div class="filters-bar">
+            <input type="text" id="accounts-search" placeholder="Buscar por razão social ou CNPJ…" oninput="renderAccounts()" style="flex:1;min-width:200px;"/>
+          </div>
+          <div class="account-cards" id="account-cards"></div>
+        </div>
+
+        <!-- Account detail view -->
+        <div id="account-detail">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+            <button class="btn btn-ghost btn-sm" onclick="backToAccounts()"><i class="fa fa-arrow-left"></i> Voltar</button>
+            <div style="flex:1;">
+              <div class="page-title" id="detail-title">—</div>
+              <div style="font-size:12px;color:var(--text-sub);font-family:monospace;" id="detail-cnpj">—</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="openModalAccount(currentAccountId)"><i class="fa fa-pen"></i> Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAccount(currentAccountId)"><i class="fa fa-trash"></i></button>
+          </div>
+
+          <!-- Detail sub-tabs -->
+          <div class="detail-tabs">
+            <button class="detail-tab active" onclick="switchDetailTab('dtab-info',this)">Informações</button>
+            <button class="detail-tab" onclick="switchDetailTab('dtab-benefits',this)">Benefícios</button>
+            <button class="detail-tab" onclick="switchDetailTab('dtab-org',this)">Organograma</button>
+          </div>
+
+          <!-- INFO -->
+          <div id="dtab-info" class="detail-pane">
+            <div class="grid-2" style="gap:20px;">
+              <div class="card">
+                <div class="section-title">Dados Cadastrais</div>
+                <div id="detail-info-body" style="font-size:13px;line-height:2;"></div>
+              </div>
+              <div class="card">
+                <div class="section-title">Endereço</div>
+                <div id="detail-address-body" style="font-size:13px;line-height:2;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BENEFITS -->
+          <div id="dtab-benefits" class="detail-pane" style="display:none;">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+              <button class="btn btn-yellow btn-sm" onclick="openBenefitModal()"><i class="fa fa-plus"></i> Editar Benefícios</button>
+            </div>
+            <div class="card">
+              <div id="benefits-display"></div>
+            </div>
+          </div>
+
+          <!-- ORG CHART -->
+          <div id="dtab-org" class="detail-pane" style="display:none;">
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <button class="btn btn-yellow btn-sm" onclick="openNodeModal()"><i class="fa fa-plus"></i> Adicionar Pessoa</button>
+              <button class="btn btn-ghost btn-sm" onclick="resetOrgLayout()"><i class="fa fa-rotate"></i> Reorganizar</button>
+            </div>
+            <div id="org-container">
+              <svg id="org-svg"></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ABA 2 — CALENDÁRIO
+      ═══════════════════════════════════════ -->
+      <div id="tab-calendar" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Calendário Sales</div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" id="cal-view-month" onclick="setCalView('month')" style="border-color:var(--yellow);color:var(--yellow);">Mês</button>
+            <button class="btn btn-ghost btn-sm" id="cal-view-list" onclick="setCalView('list')">Lista</button>
+            <button class="btn btn-yellow" onclick="openCalModal()"><i class="fa fa-plus"></i> Novo Evento</button>
+          </div>
+        </div>
+        <div class="cal-legend" id="cal-legend"></div>
+        <div class="cal-header">
+          <button class="btn btn-ghost btn-sm" onclick="calPrev()"><i class="fa fa-chevron-left"></i></button>
+          <h2 id="cal-month-label">—</h2>
+          <button class="btn btn-ghost btn-sm" onclick="calNext()"><i class="fa fa-chevron-right"></i></button>
+        </div>
+        <div id="cal-body"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ABA 3 — FRESHDESK
+      ═══════════════════════════════════════ -->
+      <div id="tab-freshdesk" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Freshdesk</div><div class="page-subtitle">Gestão de tickets internos</div></div>
+          <button class="btn btn-yellow" onclick="openTicketModal()"><i class="fa fa-plus"></i> Novo Ticket</button>
+        </div>
+
+        <!-- Flow diagram -->
+        <div class="flow-diagram">
+          <div class="flow-step"><span class="step-num">Etapa 1</span><span class="step-name">Ticket Encaminhado Internamente</span></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">Etapa 2</span><span class="step-name">Ticket Respondido</span></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">Etapa 3</span><span class="step-name">Ticket Finalizado Internamente</span></div>
+        </div>
+
+        <!-- Categories + filters -->
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:16px;">
+          <div class="card" style="flex:1;min-width:220px;max-width:280px;">
+            <div class="section-title" style="margin-bottom:10px;">Categorias</div>
+            <div id="fd-categories-list"></div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="openCatModal()"><i class="fa fa-plus"></i> Nova Categoria</button>
+          </div>
+          <div style="flex:3;min-width:280px;">
+            <div class="filters-bar">
+              <select id="fd-filter-cat" onchange="renderTickets()"><option value="">Todas as categorias</option></select>
+              <select id="fd-filter-status" onchange="renderTickets()">
+                <option value="">Todos os status</option>
+                <option value="open">Em andamento</option>
+                <option value="done">Finalizados</option>
+              </select>
+            </div>
+            <div id="tickets-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ABA 4 — ATIVOS
+      ═══════════════════════════════════════ -->
+      <div id="tab-ativos" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Ativos</div><div class="page-subtitle">Headcount e planilhas de colaboradores</div></div>
+          <button class="btn btn-yellow" onclick="document.getElementById('xlsx-upload').click()"><i class="fa fa-upload"></i> Importar Planilha</button>
+        </div>
+        <input type="file" id="xlsx-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleXlsxUpload(this)"/>
+
+        <div class="upload-zone" id="xlsx-drop-zone" onclick="document.getElementById('xlsx-upload').click()">
+          <i class="fa fa-file-excel"></i>
+          <p>Arraste uma planilha <strong>.xlsx</strong> aqui ou <span>clique para selecionar</span></p>
+        </div>
+
+        <div class="filters-bar">
+          <select id="ativos-filter-client" onchange="renderAtivos()"><option value="">Todos os clientes</option></select>
+          <input type="text" id="ativos-search" placeholder="Buscar…" oninput="renderAtivos()"/>
+        </div>
+
+        <div id="ativos-list"></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════
+           ABA 5 — DOCUMENTOS
+      ═══════════════════════════════════════ -->
+      <div id="tab-docs" class="tab-page">
+        <div class="page-header">
+          <div><div class="page-title">Documentos Recorrentes</div></div>
+          <button class="btn btn-yellow" onclick="document.getElementById('doc-upload').click()"><i class="fa fa-upload"></i> Enviar Documento</button>
+        </div>
+        <input type="file" id="doc-upload" style="display:none;" onchange="handleDocUpload(this)"/>
+
+        <div class="upload-zone" id="doc-drop-zone" onclick="document.getElementById('doc-upload').click()">
+          <i class="fa fa-folder-arrow-up"></i>
+          <p>Arraste documentos aqui ou <span>clique para selecionar</span></p>
+        </div>
+
+        <div class="filters-bar">
+          <input type="text" id="docs-search" placeholder="Buscar por nome…" oninput="renderDocs()" style="flex:1;"/>
+          <select id="docs-filter-client" onchange="renderDocs()"><option value="">Todos os clientes</option></select>
+        </div>
+        <div id="docs-list"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════ -->
+
+<!-- Account Modal -->
+<div class="modal-overlay" id="modal-account">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-account-title">Nova Conta</span>
+      <button class="modal-close" onclick="closeModal('modal-account')">×</button>
+    </div>
+    <div class="form-group"><label>CNPJ</label><input id="ff-cnpj" placeholder="00.000.000/0000-00" maxlength="18" oninput="maskCNPJ(this)"/></div>
+    <div class="form-group"><label>Razão Social</label><input id="ff-razao" placeholder="Nome da empresa"/></div>
+    <div class="form-group"><label>Área de Atuação</label><input id="ff-area" placeholder="Ex: Óleo & Gás, Mineração…"/></div>
+    <div class="form-group"><label>CEP</label><input id="ff-cep" placeholder="00000-000" maxlength="9" oninput="maskCEP(this)" onblur="fetchCEP()"/></div>
+    <div class="grid-2">
+      <div class="form-group"><label>Logradouro</label><input id="ff-logradouro" placeholder="Rua / Av."/></div>
+      <div class="form-group"><label>Número</label><input id="ff-numero" placeholder="Nº"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Bairro</label><input id="ff-bairro" placeholder="Bairro"/></div>
+      <div class="form-group"><label>Complemento</label><input id="ff-complemento" placeholder="Apto, sala…"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Cidade</label><input id="ff-cidade" placeholder="Cidade"/></div>
+      <div class="form-group"><label>Estado</label><input id="ff-estado" placeholder="UF" maxlength="2"/></div>
+    </div>
+    <div class="form-group"><label>Observações</label><textarea id="ff-obs" rows="2" placeholder="Observações gerais…" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveAccount()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Benefits Modal -->
+<div class="modal-overlay" id="modal-benefit">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Benefícios</span>
+      <button class="modal-close" onclick="closeModal('modal-benefit')">×</button>
+    </div>
+    <div class="form-group"><label>Vale Alimentação (VA)</label><input id="ben-va" placeholder="Ex: R$ 600,00 / mês"/></div>
+    <div class="form-group"><label>Vale Refeição (VR)</label><input id="ben-vr" placeholder="Ex: R$ 35,00 / dia"/></div>
+    <div class="form-group"><label>Plano de Saúde</label><input id="ben-saude" placeholder="Ex: Unimed — Plano Básico"/></div>
+    <div class="form-group"><label>Seguro de Vida</label><input id="ben-seguro" placeholder="Ex: Metlife — 24x salário"/></div>
+    <div class="form-group"><label>Vale Transporte</label><input id="ben-vt" placeholder="Ex: R$ 11,20 / dia"/></div>
+    <div class="form-group"><label>Outros Benefícios</label><textarea id="ben-outros" rows="3" placeholder="Descreva outros benefícios…" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-benefit')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveBenefits()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Org Node Modal -->
+<div class="modal-overlay" id="modal-node">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-node-title">Adicionar Pessoa</span>
+      <button class="modal-close" onclick="closeModal('modal-node')">×</button>
+    </div>
+    <div class="form-group"><label>Nome</label><input id="node-name" placeholder="Nome completo"/></div>
+    <div class="form-group"><label>Cargo</label><input id="node-role" placeholder="Ex: Gerente de Operações"/></div>
+    <div class="form-group"><label>Área</label><input id="node-area" placeholder="Ex: Produção"/></div>
+    <div class="form-group"><label>Anotações</label><textarea id="node-notes" rows="3" placeholder="Observações sobre esse gestor…" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea></div>
+    <div class="form-group"><label>Subordinado a (opcional)</label><select id="node-parent"><option value="">— Raiz —</option></select></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-node')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveNode()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Event Modal -->
+<div class="modal-overlay" id="modal-cal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-cal-title">Novo Evento</span>
+      <button class="modal-close" onclick="closeModal('modal-cal')">×</button>
+    </div>
+    <div class="form-group"><label>Título</label><input id="cal-title" placeholder="Título do evento"/></div>
+    <div class="grid-2">
+      <div class="form-group"><label>Data</label><input type="date" id="cal-date"/></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="cal-type">
+          <option value="visitacao">Visitação</option>
+          <option value="onboarding">Onboarding</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Cliente</label>
+      <select id="cal-client"><option value="">— Sem cliente —</option></select>
+    </div>
+    <div class="form-group"><label>Observações</label><textarea id="cal-obs" rows="2" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cal')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveCalEvent()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ticket Modal -->
+<div class="modal-overlay" id="modal-ticket">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Novo Ticket</span>
+      <button class="modal-close" onclick="closeModal('modal-ticket')">×</button>
+    </div>
+    <div class="form-group"><label>Título</label><input id="ticket-title" placeholder="Assunto do ticket"/></div>
+    <div class="form-group"><label>Categoria</label><select id="ticket-cat"><option value="">Selecione…</option></select></div>
+    <div class="form-group"><label>Descrição</label><textarea id="ticket-desc" rows="3" placeholder="Descreva o ticket…" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea></div>
+    <div class="form-group"><label>Data de Abertura</label><input type="date" id="ticket-date"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-ticket')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveTicket()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FD Category Modal -->
+<div class="modal-overlay" id="modal-cat">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Nova Categoria</span>
+      <button class="modal-close" onclick="closeModal('modal-cat')">×</button>
+    </div>
+    <div class="form-group"><label>Nome</label><input id="cat-name" placeholder="Nome da categoria"/></div>
+    <div class="form-group"><label>Cor</label><input type="color" id="cat-color" value="#3b82f6" style="height:38px;width:100%;padding:2px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cat')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveCat()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ativo schedule Modal -->
+<div class="modal-overlay" id="modal-ativo-sched">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Programar Evento para Ativo</span>
+      <button class="modal-close" onclick="closeModal('modal-ativo-sched')">×</button>
+    </div>
+    <div class="form-group"><label>Tipo</label>
+      <select id="sched-type">
+        <option value="desligamento">Desligamento</option>
+        <option value="extensao">Extensão de Contrato</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Data</label><input type="date" id="sched-date"/></div>
+    <div class="form-group"><label>Observação</label><input id="sched-obs" placeholder="Detalhes…"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-ativo-sched')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveAtivoSched()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Doc name modal -->
+<div class="modal-overlay" id="modal-doc-name">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Salvar Documento</span>
+      <button class="modal-close" onclick="closeModal('modal-doc-name')">×</button>
+    </div>
+    <div class="form-group"><label>Nome do Documento</label><input id="doc-name-input" placeholder="Nome para identificar o arquivo"/></div>
+    <div class="form-group"><label>Cliente (opcional)</label><select id="doc-client-select"><option value="">— Sem cliente —</option></select></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-doc-name')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="confirmDocSave()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Modal -->
+<div class="modal-overlay" id="modal-admin">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <span class="modal-title">Painel Administrativo</span>
+      <button class="modal-close" onclick="closeModal('modal-admin')">×</button>
+    </div>
+    <div id="admin-users-list"></div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header"><span class="modal-title">Confirmar</span></div>
+    <p id="confirm-msg" style="font-size:14px;color:var(--text-sub);margin-bottom:4px;"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════ -->
+<script>
+/* ══════════════════════════════════════════════
+   ███████╗██╗██████╗ ███████╗██████╗  █████╗ ███████╗███████╗
+   ██╔════╝██║██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
+   █████╗  ██║██████╔╝█████╗  ██████╔╝███████║███████╗█████╗
+   ██╔══╝  ██║██╔══██╗██╔══╝  ██╔══██╗██╔══██║╚════██║██╔══╝
+   ██║     ██║██║  ██║███████╗██████╔╝██║  ██║███████║███████╗
+   ╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝
+
+   ██████╗  ██████╗ ██████╗ ██████╗ ██╗████████╗
+   ██╔════╝██╔═══██╗██╔════╝██╔══██╗██║╚══██╔══╝
+   ██║     ██║   ██║██║     ██████╔╝██║   ██║
+   ██║     ██║   ██║██║     ██╔═══╝ ██║   ██║
+   ╚██████╗╚██████╔╝╚██████╗██║     ██║   ██║
+    ╚═════╝ ╚═════╝  ╚═════╝╚═╝     ╚═╝   ╚═╝
+
+   ══════════════════════════════════════════════
+   🔧 CONFIGURE FIREBASE AQUI
+   ══════════════════════════════════════════════
+   1. Acesse https://console.firebase.google.com
+   2. Crie um projeto chamado "brunel-cockpit"
+   3. Clique em "Adicionar app" > Web
+   4. Copie as credenciais e cole abaixo
+   ══════════════════════════════════════════════ */
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC3lJX3uIrDA6VS1G0ZyA95hlbT4nVwzxQ",
+  authDomain: "brunel-cockpit-3fe2e.firebaseapp.com",
+  databaseURL: "https://brunel-cockpit-3fe2e-default-rtdb.firebaseio.com",
+  projectId: "brunel-cockpit-3fe2e",
+  storageBucket: "brunel-cockpit-3fe2e.firebasestorage.app",
+  messagingSenderId: "787155785472",
+  appId: "1:787155785472:web:a9e96d96f46409ac72c5e5"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+/* ══════════════════════════════════════════════
+   FIREBASE INIT
+══════════════════════════════════════════════ */
+let db;
+let firebaseReady = false;
+
+function initFirebase() {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    firebaseReady = true;
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    toast('Erro ao conectar ao Firebase. Verifique as credenciais no código.', 'error');
+  }
+}
+
+/* ── Firebase helpers ── */
+function fbGet(path) {
+  return db.ref(path).once('value').then(s => s.val());
+}
+function fbSet(path, val) {
+  return db.ref(path).set(val);
+}
+function fbPush(path, val) {
+  return db.ref(path).push(val);
+}
+function fbUpdate(path, val) {
+  return db.ref(path).update(val);
+}
+function fbDelete(path) {
+  return db.ref(path).remove();
+}
+
+/* ══════════════════════════════════════════════
+   USERS / AUTH
+══════════════════════════════════════════════ */
+const DEFAULT_USERS = ['ADMIN','D.DINIZ','J.TROTTE','C.BALDOTTO','C.LAGOA','LUIZ.O','LIVIA.O','R.ALMEIDA','S.BRAGA'];
+const ADMIN_DEFAULT_PASS = 'Casaca';
+let currentUser = null;
+let pendingSetPassUser = null;
+
+async function loadUsers() {
+  const users = await fbGet('users');
+  if (!users) {
+    // Seed users
+    const seed = {};
+    DEFAULT_USERS.forEach(u => {
+      seed[u] = { name: u, passwordHash: u === 'ADMIN' ? hashPass(ADMIN_DEFAULT_PASS) : null, mustSetPass: u !== 'ADMIN' };
+    });
+    await fbSet('users', seed);
+    return seed;
+  }
+  return users;
+}
+
+function hashPass(p) {
+  // Simple hash — for production use bcrypt or Firebase Auth
+  let h = 0;
+  for (let i = 0; i < p.length; i++) { h = (Math.imul(31, h) + p.charCodeAt(i)) | 0; }
+  return 'h' + Math.abs(h).toString(36);
+}
+
+async function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  document.getElementById('login-error').textContent = '';
+  if (!user) { document.getElementById('login-error').textContent = 'Selecione um usuário.'; return; }
+  if (!pass) { document.getElementById('login-error').textContent = 'Digite a senha.'; return; }
+
+  const users = await loadUsers();
+  const rec = users[user];
+  if (!rec) { document.getElementById('login-error').textContent = 'Usuário não encontrado.'; return; }
+
+  if (rec.mustSetPass) {
+    // Allow login with default "pass" = username for first access check
+    // Admin uses "Casaca", others have null password (any value triggers set pass)
+    if (user === 'ADMIN' && hashPass(pass) !== rec.passwordHash) {
+      document.getElementById('login-error').textContent = 'Senha incorreta.';
+      return;
+    }
+    pendingSetPassUser = user;
+    openModal('modal-setpass');
+    return;
+  }
+
+  if (hashPass(pass) !== rec.passwordHash) {
+    document.getElementById('login-error').textContent = 'Senha incorreta.';
+    return;
+  }
+  loginSuccess(user);
+}
+
+async function confirmSetPass() {
+  const p1 = document.getElementById('new-pass1').value;
+  const p2 = document.getElementById('new-pass2').value;
+  if (p1.length < 4) { document.getElementById('setpass-error').textContent = 'Senha deve ter ao menos 4 caracteres.'; return; }
+  if (p1 !== p2) { document.getElementById('setpass-error').textContent = 'As senhas não coincidem.'; return; }
+  await fbUpdate(`users/${pendingSetPassUser}`, { passwordHash: hashPass(p1), mustSetPass: false });
+  closeModal('modal-setpass');
+  loginSuccess(pendingSetPassUser);
+}
+
+function loginSuccess(user) {
+  currentUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('header-username').textContent = user;
+  document.getElementById('app').classList.add('visible');
+  if (user === 'ADMIN') document.getElementById('admin-btn').style.display = 'flex';
+  renderAll();
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').textContent = '';
+}
+
+async function openAdmin() {
+  const users = await loadUsers();
+  const el = document.getElementById('admin-users-list');
+  el.innerHTML = '<div class="section-title">Usuários do Sistema</div>';
+  Object.entries(users).forEach(([key, u]) => {
+    const row = document.createElement('div');
+    row.className = 'user-row';
+    row.innerHTML = `
+      <div class="user-avatar">${key[0]}</div>
+      <div style="flex:1;"><div style="font-weight:600;">${key}</div>
+        <div style="font-size:11px;color:var(--text-sub);">${u.mustSetPass ? '⚠ Senha não definida' : '✓ Senha ativa'}</div>
+      </div>
+      ${key !== 'ADMIN' ? `<button class="btn btn-ghost btn-sm" onclick="resetUserPass('${key}')"><i class="fa fa-rotate-left"></i> Resetar Senha</button>` : ''}
+    `;
+    el.appendChild(row);
+  });
+  openModal('modal-admin');
+}
+
+async function resetUserPass(user) {
+  await fbUpdate(`users/${user}`, { passwordHash: null, mustSetPass: true });
+  toast(`Senha de ${user} resetada com sucesso.`, 'success');
+  openAdmin();
+}
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-page').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  if (btn) btn.classList.add('active');
+  // Refresh relevant data
+  if (tabId === 'tab-calendar') renderCalendar();
+  if (tabId === 'tab-freshdesk') { renderTickets(); renderFdCategories(); }
+  if (tabId === 'tab-ativos') renderAtivos();
+  if (tabId === 'tab-docs') renderDocs();
+}
+
+function switchDetailTab(paneId, btn) {
+  document.querySelectorAll('.detail-pane').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.detail-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById(paneId).style.display = 'block';
+  btn.classList.add('active');
+  if (paneId === 'dtab-org') renderOrg();
+}
+
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function toast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<i class="fa ${type==='success'?'fa-check-circle':type==='error'?'fa-circle-xmark':'fa-circle-info'}"></i> ${msg}`;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function confirm(msg, cb) {
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-ok-btn').onclick = () => { closeModal('modal-confirm'); cb(); };
+  openModal('modal-confirm');
+}
+function toggleTheme() {
+  const h = document.documentElement;
+  h.setAttribute('data-theme', h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+}
+function maskCNPJ(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,14);
+  if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');
+  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d+)$/,'$1.$2.$3/$4');
+  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d+)$/,'$1.$2.$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d+)$/,'$1.$2');
+  el.value = v;
+}
+function maskCEP(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,8);
+  if (v.length > 5) v = v.replace(/^(\d{5})(\d+)$/,'$1-$2');
+  el.value = v;
+}
+async function fetchCEP() {
+  const cep = document.getElementById('ff-cep').value.replace(/\D/g,'');
+  if (cep.length !== 8) return;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d = await r.json();
+    if (d.erro) return;
+    document.getElementById('ff-logradouro').value = d.logradouro || '';
+    document.getElementById('ff-bairro').value = d.bairro || '';
+    document.getElementById('ff-cidade').value = d.localidade || '';
+    document.getElementById('ff-estado').value = d.uf || '';
+  } catch(e) {}
+}
+function areaColor(area) {
+  if (!area) return '#888';
+  let h = 0;
+  for (let c of area) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return `hsl(${h},70%,55%)`;
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+/* ══════════════════════════════════════════════
+   GLOBAL STATE (fetched from Firebase)
+══════════════════════════════════════════════ */
+let accounts = {};
+let calEvents = {};
+let tickets = {};
+let fdCats = {};
+let ativos = {};
+let docs = {};
+
+async function renderAll() {
+  await Promise.all([
+    fbGet('accounts').then(d => { accounts = d || {}; }),
+    fbGet('calEvents').then(d => { calEvents = d || {}; }),
+    fbGet('tickets').then(d => { tickets = d || {}; }),
+    fbGet('fdCats').then(d => { fdCats = d || {}; }),
+    fbGet('ativos').then(d => { ativos = d || {}; }),
+    fbGet('docs').then(d => { docs = d || {}; }),
+  ]);
+  renderAccounts();
+  renderCalendar();
+  renderTickets();
+  renderFdCategories();
+  renderAtivos();
+  renderDocs();
+  populateClientSelects();
+}
+
+/* ══════════════════════════════════════════════
+   ── ABA 1: CONTAS ──
+══════════════════════════════════════════════ */
+let currentAccountId = null;
+
+function renderAccounts() {
+  const q = (document.getElementById('accounts-search')?.value || '').toLowerCase();
+  const el = document.getElementById('account-cards');
+  el.innerHTML = '';
+  const list = Object.entries(accounts).filter(([,a]) =>
+    a.razao.toLowerCase().includes(q) || a.cnpj.includes(q)
+  );
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fa fa-building"></i><p>Nenhuma conta encontrada.</p></div>';
+    return;
+  }
+  list.forEach(([id, a]) => {
+    const c = document.createElement('div');
+    c.className = 'account-card';
+    c.innerHTML = `
+      <h3>${a.razao}</h3>
+      <div class="cnpj">${a.cnpj}</div>
+      <div class="area"><span class="badge" style="background:${areaColor(a.area)}22;color:${areaColor(a.area)}">${a.area || '—'}</span></div>
+    `;
+    c.onclick = () => openAccountDetail(id);
+    el.appendChild(c);
+  });
+}
+
+function openModalAccount(id = null) {
+  const a = id ? accounts[id] : null;
+  document.getElementById('modal-account-title').textContent = id ? 'Editar Conta' : 'Nova Conta';
+  ['cnpj','razao','area','cep','logradouro','numero','bairro','complemento','cidade','estado','obs'].forEach(f => {
+    document.getElementById('ff-'+f).value = a ? (a[f] || '') : '';
+  });
+  openModal('modal-account');
+  document.getElementById('modal-account').dataset.editId = id || '';
+}
+
+async function saveAccount() {
+  const razao = document.getElementById('ff-razao').value.trim();
+  if (!razao) { toast('Razão social é obrigatória.', 'error'); return; }
+  const data = {
+    cnpj: document.getElementById('ff-cnpj').value,
+    razao, area: document.getElementById('ff-area').value,
+    cep: document.getElementById('ff-cep').value,
+    logradouro: document.getElementById('ff-logradouro').value,
+    numero: document.getElementById('ff-numero').value,
+    bairro: document.getElementById('ff-bairro').value,
+    complemento: document.getElementById('ff-complemento').value,
+    cidade: document.getElementById('ff-cidade').value,
+    estado: document.getElementById('ff-estado').value,
+    obs: document.getElementById('ff-obs').value,
+    createdAt: Date.now(),
+  };
+  const editId = document.getElementById('modal-account').dataset.editId;
+  if (editId) {
+    await fbUpdate(`accounts/${editId}`, data);
+    accounts[editId] = {...accounts[editId], ...data};
+    toast('Conta atualizada!', 'success');
+  } else {
+    const ref = await fbPush('accounts', data);
+    accounts[ref.key] = data;
+    toast('Conta criada!', 'success');
+  }
+  closeModal('modal-account');
+  renderAccounts();
+  populateClientSelects();
+  if (editId && currentAccountId === editId) openAccountDetail(editId);
+}
+
+async function deleteAccount(id) {
+  confirm('Excluir esta conta permanentemente?', async () => {
+    await fbDelete(`accounts/${id}`);
+    delete accounts[id];
+    renderAccounts();
+    backToAccounts();
+    toast('Conta excluída.', 'success');
+  });
+}
+
+function openAccountDetail(id) {
+  currentAccountId = id;
+  const a = accounts[id];
+  document.getElementById('accounts-list-view').style.display = 'none';
+  document.getElementById('account-detail').classList.add('active');
+  document.getElementById('detail-title').textContent = a.razao;
+  document.getElementById('detail-cnpj').textContent = a.cnpj;
+  // info pane
+  document.getElementById('detail-info-body').innerHTML = `
+    <b>Área:</b> ${a.area || '—'}<br>
+    <b>CEP:</b> ${a.cep || '—'}<br>
+    <b>Obs:</b> ${a.obs || '—'}
+  `;
+  document.getElementById('detail-address-body').innerHTML = `
+    ${a.logradouro || '—'}, ${a.numero || '—'}<br>
+    ${a.bairro || '—'}<br>
+    ${a.cidade || '—'} – ${a.estado || '—'}
+  `;
+  // reset to info tab
+  document.querySelectorAll('.detail-pane').forEach(p => p.style.display='none');
+  document.getElementById('dtab-info').style.display='block';
+  document.querySelectorAll('.detail-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.detail-tab')[0].classList.add('active');
+  renderBenefits(id);
+}
+
+function backToAccounts() {
+  currentAccountId = null;
+  document.getElementById('accounts-list-view').style.display = '';
+  document.getElementById('account-detail').classList.remove('active');
+}
+
+/* ── Benefits ── */
+function openBenefitModal() {
+  const b = accounts[currentAccountId]?.benefits || {};
+  ['va','vr','saude','seguro','vt','outros'].forEach(f => {
+    document.getElementById('ben-'+f).value = b[f] || '';
+  });
+  openModal('modal-benefit');
+}
+
+async function saveBenefits() {
+  const b = {};
+  ['va','vr','saude','seguro','vt','outros'].forEach(f => { b[f] = document.getElementById('ben-'+f).value; });
+  await fbUpdate(`accounts/${currentAccountId}`, { benefits: b });
+  accounts[currentAccountId].benefits = b;
+  renderBenefits(currentAccountId);
+  closeModal('modal-benefit');
+  toast('Benefícios salvos!', 'success');
+}
+
+function renderBenefits(id) {
+  const b = accounts[id]?.benefits || {};
+  const defs = [
+    { key:'va', icon:'fa-utensils', label:'Vale Alimentação (VA)' },
+    { key:'vr', icon:'fa-bowl-food', label:'Vale Refeição (VR)' },
+    { key:'saude', icon:'fa-heart-pulse', label:'Plano de Saúde' },
+    { key:'seguro', icon:'fa-shield-halved', label:'Seguro de Vida' },
+    { key:'vt', icon:'fa-bus', label:'Vale Transporte' },
+    { key:'outros', icon:'fa-plus', label:'Outros Benefícios' },
+  ];
+  const el = document.getElementById('benefits-display');
+  el.innerHTML = defs.map(d => `
+    <div class="benefit-row">
+      <div class="benefit-icon"><i class="fa ${d.icon}"></i></div>
+      <div style="flex:1;">
+        <div class="benefit-label">${d.label}</div>
+        <div class="benefit-value">${b[d.key] || '<span style="color:var(--text-muted)">Não informado</span>'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── Org Chart ── */
+let orgNodes = {};    // { id: { name, role, area, notes, parentId, x, y } }
+let dragState = null;
+let editingNodeId = null;
+
+async function loadOrgNodes() {
+  orgNodes = (await fbGet(`orgNodes/${currentAccountId}`)) || {};
+}
+
+function openNodeModal(editId = null) {
+  editingNodeId = editId;
+  const n = editId ? orgNodes[editId] : null;
+  document.getElementById('modal-node-title').textContent = editId ? 'Editar Pessoa' : 'Adicionar Pessoa';
+  document.getElementById('node-name').value = n?.name || '';
+  document.getElementById('node-role').value = n?.role || '';
+  document.getElementById('node-area').value = n?.area || '';
+  document.getElementById('node-notes').value = n?.notes || '';
+  // populate parent select
+  const sel = document.getElementById('node-parent');
+  sel.innerHTML = '<option value="">— Raiz —</option>';
+  Object.entries(orgNodes).forEach(([id, node]) => {
+    if (id === editId) return;
+    const opt = document.createElement('option');
+    opt.value = id; opt.textContent = node.name;
+    if (n?.parentId === id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  openModal('modal-node');
+}
+
+async function saveNode() {
+  const name = document.getElementById('node-name').value.trim();
+  if (!name) { toast('Nome é obrigatório.', 'error'); return; }
+  const data = {
+    name, role: document.getElementById('node-role').value,
+    area: document.getElementById('node-area').value,
+    notes: document.getElementById('node-notes').value,
+    parentId: document.getElementById('node-parent').value || null,
+    x: editingNodeId ? (orgNodes[editingNodeId]?.x ?? 40) : 40,
+    y: editingNodeId ? (orgNodes[editingNodeId]?.y ?? 40) : Object.keys(orgNodes).length * 90 + 40,
+  };
+  if (editingNodeId) {
+    await fbUpdate(`orgNodes/${currentAccountId}/${editingNodeId}`, data);
+    orgNodes[editingNodeId] = data;
+  } else {
+    const ref = await fbPush(`orgNodes/${currentAccountId}`, data);
+    orgNodes[ref.key] = data;
+  }
+  closeModal('modal-node');
+  renderOrg();
+  toast('Pessoa salva!', 'success');
+}
+
+async function deleteNode(id) {
+  // Re-parent children to this node's parent
+  Object.entries(orgNodes).forEach(([cid, c]) => {
+    if (c.parentId === id) { c.parentId = orgNodes[id].parentId; }
+  });
+  await fbDelete(`orgNodes/${currentAccountId}/${id}`);
+  delete orgNodes[id];
+  renderOrg();
+}
+
+async function renderOrg() {
+  if (!currentAccountId) return;
+  await loadOrgNodes();
+  const container = document.getElementById('org-container');
+  // Clear old nodes (keep svg)
+  [...container.children].forEach(c => { if (c.id !== 'org-svg') c.remove(); });
+  const svg = document.getElementById('org-svg');
+  svg.innerHTML = '';
+
+  const nodeEls = {};
+  Object.entries(orgNodes).forEach(([id, n]) => {
+    const el = document.createElement('div');
+    el.className = 'org-node';
+    el.dataset.id = id;
+    el.style.left = (n.x ?? 40) + 'px';
+    el.style.top  = (n.y ?? 40) + 'px';
+    el.innerHTML = `
+      <div class="node-name">${n.name}</div>
+      <div class="node-role">${n.role || ''}</div>
+      <div class="node-area">${n.area || ''}</div>
+      <div class="node-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openNodeModal('${id}')"><i class="fa fa-pen"></i></button>
+        <button class="btn btn-danger btn-sm" onclick="deleteNode('${id}')"><i class="fa fa-trash"></i></button>
+      </div>
+    `;
+    makeDraggable(el, id, container);
+    container.appendChild(el);
+    nodeEls[id] = el;
+  });
+  drawConnectors(svg, nodeEls);
+}
+
+function drawConnectors(svg, nodeEls) {
+  svg.innerHTML = '';
+  Object.entries(orgNodes).forEach(([id, n]) => {
+    if (!n.parentId || !nodeEls[n.parentId] || !nodeEls[id]) return;
+    const parent = nodeEls[n.parentId];
+    const child  = nodeEls[id];
+    const px = parseInt(parent.style.left) + parent.offsetWidth/2;
+    const py = parseInt(parent.style.top)  + parent.offsetHeight;
+    const cx = parseInt(child.style.left)  + child.offsetWidth/2;
+    const cy = parseInt(child.style.top);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','path');
+    const my = (py + cy) / 2;
+    line.setAttribute('d', `M${px},${py} C${px},${my} ${cx},${my} ${cx},${cy}`);
+    line.setAttribute('stroke', 'var(--border)');
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('fill', 'none');
+    svg.appendChild(line);
+  });
+}
+
+function makeDraggable(el, id, container) {
+  el.addEventListener('mousedown', e => {
+    if (e.target.closest('button')) return;
+    e.preventDefault();
+    const rect = container.getBoundingClientRect();
+    const startX = e.clientX - rect.left - parseInt(el.style.left);
+    const startY = e.clientY - rect.top  - parseInt(el.style.top);
+    el.classList.add('dragging');
+    const move = mv => {
+      el.style.left = (mv.clientX - rect.left - startX) + 'px';
+      el.style.top  = (mv.clientY - rect.top  - startY) + 'px';
+      drawConnectors(document.getElementById('org-svg'), collectNodeEls());
+    };
+    const up = async () => {
+      el.classList.remove('dragging');
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      orgNodes[id].x = parseInt(el.style.left);
+      orgNodes[id].y = parseInt(el.style.top);
+      await fbUpdate(`orgNodes/${currentAccountId}/${id}`, { x: orgNodes[id].x, y: orgNodes[id].y });
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  });
+}
+
+function collectNodeEls() {
+  const els = {};
+  document.querySelectorAll('.org-node').forEach(el => { els[el.dataset.id] = el; });
+  return els;
+}
+
+function resetOrgLayout() {
+  const ids = Object.keys(orgNodes);
+  ids.forEach((id, i) => {
+    orgNodes[id].x = 40 + (i % 4) * 220;
+    orgNodes[id].y = 40 + Math.floor(i / 4) * 120;
+  });
+  const updates = {};
+  ids.forEach(id => { updates[`orgNodes/${currentAccountId}/${id}/x`] = orgNodes[id].x; updates[`orgNodes/${currentAccountId}/${id}/y`] = orgNodes[id].y; });
+  db.ref().update(updates);
+  renderOrg();
+}
+
+/* ══════════════════════════════════════════════
+   ── ABA 2: CALENDÁRIO ──
+══════════════════════════════════════════════ */
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let calView = 'month';
+let editingCalId = null;
+
+function setCalView(v) {
+  calView = v;
+  document.getElementById('cal-view-month').style.borderColor = v==='month' ? 'var(--yellow)' : 'var(--border)';
+  document.getElementById('cal-view-month').style.color = v==='month' ? 'var(--yellow)' : '';
+  document.getElementById('cal-view-list').style.borderColor = v==='list' ? 'var(--yellow)' : 'var(--border)';
+  document.getElementById('cal-view-list').style.color = v==='list' ? 'var(--yellow)' : '';
+  renderCalendar();
+}
+function calPrev() { calMonth--; if (calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext() { calMonth++; if (calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
+function renderCalendar() {
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('cal-month-label').textContent = `${months[calMonth]} ${calYear}`;
+  renderCalLegend();
+  if (calView === 'month') renderCalMonth();
+  else renderCalList();
+}
+
+function renderCalLegend() {
+  const areas = new Set();
+  Object.values(accounts).forEach(a => { if(a.area) areas.add(a.area); });
+  const el = document.getElementById('cal-legend');
+  el.innerHTML = '';
+  areas.forEach(a => {
+    const item = document.createElement('div');
+    item.className = 'cal-legend-item';
+    item.innerHTML = `<div class="cal-legend-dot" style="background:${areaColor(a)}"></div>${a}`;
+    el.appendChild(item);
+  });
+  // Special: desligamentos/ativos events
+  const hasAtiv = Object.values(calEvents).some(e => e.source === 'ativo');
+  if (hasAtiv) {
+    const item = document.createElement('div');
+    item.className = 'cal-legend-item';
+    item.innerHTML = `<div class="cal-legend-dot" style="background:var(--red)"></div>Eventos de Ativos`;
+    el.appendChild(item);
+  }
+}
+
+function getEventsForDate(dateStr) {
+  return Object.entries(calEvents).filter(([,e]) => e.date === dateStr);
+}
+
+function renderCalMonth() {
+  const el = document.getElementById('cal-body');
+  const today = new Date();
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const daysInPrev = new Date(calYear, calMonth, 0).getDate();
+  const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+  let html = '<div class="cal-grid">';
+  dayNames.forEach(d => { html += `<div class="cal-day-name">${d}</div>`; });
+
+  // Previous month fill
+  for (let i = firstDay-1; i >= 0; i--) {
+    const d = daysInPrev - i;
+    const dateStr = `${calYear}-${String(calMonth===0?12:calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    html += `<div class="cal-cell other-month"><div class="day-num">${d}</div></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = today.getDate()===d && today.getMonth()===calMonth && today.getFullYear()===calYear;
+    const evs = getEventsForDate(dateStr);
+    let evHtml = evs.map(([id,e]) => {
+      const acc = e.clientId ? accounts[e.clientId] : null;
+      const color = e.source==='ativo' ? 'var(--red)' : (acc ? areaColor(acc.area) : '#888');
+      return `<div class="cal-event" style="background:${color}" title="${e.title}" onclick="openCalModal('${id}');event.stopPropagation();">${e.source==='ativo'?'⚠ ':''}${e.title}</div>`;
+    }).join('');
+    html += `<div class="cal-cell${isToday?' today':''}" onclick="openCalModal(null,'${dateStr}')">
+      <div class="day-num">${d}</div>${evHtml}</div>`;
+  }
+
+  // Fill remaining
+  const total = firstDay + daysInMonth;
+  const remaining = (7 - (total % 7)) % 7;
+  for (let d = 1; d <= remaining; d++) {
+    html += `<div class="cal-cell other-month"><div class="day-num">${d}</div></div>`;
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderCalList() {
+  const el = document.getElementById('cal-body');
+  const monthStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const evs = Object.entries(calEvents).filter(([,e]) => e.date?.startsWith(monthStr))
+    .sort((a,b) => a[1].date.localeCompare(b[1].date));
+  if (!evs.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-calendar-xmark"></i><p>Nenhum evento neste mês.</p></div>'; return; }
+  el.innerHTML = evs.map(([id,e]) => {
+    const acc = e.clientId ? accounts[e.clientId] : null;
+    const color = e.source==='ativo' ? 'var(--red)' : (acc ? areaColor(acc.area) : '#888');
+    return `<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
+      <div style="width:8px;height:40px;border-radius:4px;background:${color};flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-weight:700;">${e.title}</div>
+        <div style="font-size:12px;color:var(--text-sub);">${fmtDate(e.date)} · ${e.type||'—'} ${acc?'· '+acc.razao:''}</div>
+        ${e.obs?`<div style="font-size:12px;color:var(--text-sub);">${e.obs}</div>`:''}
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openCalModal('${id}')"><i class="fa fa-pen"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCalEvent('${id}')"><i class="fa fa-trash"></i></button>
+    </div>`;
+  }).join('');
+}
+
+function openCalModal(id=null, dateStr=null) {
+  editingCalId = id;
+  const e = id ? calEvents[id] : null;
+  document.getElementById('modal-cal-title').textContent = id ? 'Editar Evento' : 'Novo Evento';
+  document.getElementById('cal-title').value = e?.title || '';
+  document.getElementById('cal-date').value = e?.date || dateStr || '';
+  document.getElementById('cal-type').value = e?.type || 'visitacao';
+  document.getElementById('cal-obs').value = e?.obs || '';
+  const sel = document.getElementById('cal-client');
+  sel.innerHTML = '<option value="">— Sem cliente —</option>';
+  Object.entries(accounts).forEach(([id,a]) => {
+    const opt = document.createElement('option');
+    opt.value = id; opt.textContent = a.razao;
+    if (e?.clientId === id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  openModal('modal-cal');
+}
+
+async function saveCalEvent() {
+  const title = document.getElementById('cal-title').value.trim();
+  const date  = document.getElementById('cal-date').value;
+  if (!title || !date) { toast('Título e data são obrigatórios.', 'error'); return; }
+  const data = { title, date, type: document.getElementById('cal-type').value, clientId: document.getElementById('cal-client').value, obs: document.getElementById('cal-obs').value };
+  if (editingCalId) {
+    await fbUpdate(`calEvents/${editingCalId}`, data);
+    calEvents[editingCalId] = {...calEvents[editingCalId], ...data};
+  } else {
+    const ref = await fbPush('calEvents', data);
+    calEvents[ref.key] = data;
+  }
+  closeModal('modal-cal');
+  renderCalendar();
+  toast('Evento salvo!', 'success');
+}
+
+async function deleteCalEvent(id) {
+  confirm('Excluir este evento?', async () => {
+    await fbDelete(`calEvents/${id}`);
+    delete calEvents[id];
+    renderCalendar();
+    toast('Evento excluído.', 'success');
+  });
+}
+
+/* ══════════════════════════════════════════════
+   ── ABA 3: FRESHDESK ──
+══════════════════════════════════════════════ */
+const FD_STEPS = ['Encaminhado Internamente','Respondido','Finalizado Internamente'];
+
+function renderFdCategories() {
+  const el = document.getElementById('fd-categories-list');
+  const sel = document.getElementById('fd-filter-cat');
+  const tsel = document.getElementById('ticket-cat');
+  el.innerHTML = '';
+  sel.innerHTML = '<option value="">Todas as categorias</option>';
+  tsel.innerHTML = '<option value="">Selecione…</option>';
+  Object.entries(fdCats).forEach(([id,c]) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);';
+    row.innerHTML = `<div class="color-swatch" style="background:${c.color}"></div><span style="flex:1;font-size:13px;">${c.name}</span><button class="btn btn-danger btn-sm" onclick="deleteCat('${id}')"><i class="fa fa-trash"></i></button>`;
+    el.appendChild(row);
+    [sel,tsel].forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = id; opt.textContent = c.name;
+      s.appendChild(opt);
+    });
+  });
+}
+
+function openCatModal() { document.getElementById('cat-name').value=''; openModal('modal-cat'); }
+async function saveCat() {
+  const name = document.getElementById('cat-name').value.trim();
+  if (!name) { toast('Nome obrigatório.','error'); return; }
+  const data = { name, color: document.getElementById('cat-color').value };
+  const ref = await fbPush('fdCats', data);
+  fdCats[ref.key] = data;
+  closeModal('modal-cat');
+  renderFdCategories();
+  renderTickets();
+  toast('Categoria criada!','success');
+}
+async function deleteCat(id) {
+  await fbDelete(`fdCats/${id}`);
+  delete fdCats[id];
+  renderFdCategories();
+  renderTickets();
+}
+
+function openTicketModal() {
+  document.getElementById('ticket-title').value='';
+  document.getElementById('ticket-desc').value='';
+  document.getElementById('ticket-date').value = new Date().toISOString().split('T')[0];
+  openModal('modal-ticket');
+}
+async function saveTicket() {
+  const title = document.getElementById('ticket-title').value.trim();
+  if (!title) { toast('Título obrigatório.','error'); return; }
+  const data = {
+    title, desc: document.getElementById('ticket-desc').value,
+    catId: document.getElementById('ticket-cat').value,
+    date: document.getElementById('ticket-date').value,
+    steps: [false,false,false], createdAt: Date.now()
+  };
+  const ref = await fbPush('tickets', data);
+  tickets[ref.key] = data;
+  closeModal('modal-ticket');
+  renderTickets();
+  toast('Ticket criado!','success');
+}
+
+function renderTickets() {
+  const el = document.getElementById('tickets-list');
+  const filterCat = document.getElementById('fd-filter-cat')?.value || '';
+  const filterStatus = document.getElementById('fd-filter-status')?.value || '';
+  let list = Object.entries(tickets);
+  if (filterCat) list = list.filter(([,t]) => t.catId === filterCat);
+  if (filterStatus === 'open') list = list.filter(([,t]) => !t.steps?.every(Boolean));
+  if (filterStatus === 'done') list = list.filter(([,t]) => t.steps?.every(Boolean));
+  // Sort: open first, then done
+  list.sort((a,b) => {
+    const da = a[1].steps?.every(Boolean);
+    const db = b[1].steps?.every(Boolean);
+    if (da !== db) return da ? 1 : -1;
+    return b[1].createdAt - a[1].createdAt;
+  });
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-ticket"></i><p>Nenhum ticket encontrado.</p></div>'; return; }
+  el.innerHTML = '';
+  list.forEach(([id,t]) => {
+    const cat = fdCats[t.catId];
+    const done = t.steps?.every(Boolean);
+    const card = document.createElement('div');
+    card.className = `ticket-card${done?' done':''}`;
+    if (!done && cat) card.style.borderLeft = `3px solid ${cat.color}`;
+    const stepsHtml = FD_STEPS.map((s,i) => {
+      const isDone = t.steps?.[i];
+      const canClick = i === 0 || t.steps?.[i-1];
+      return `<button class="step-btn${isDone?' done':canClick?' active-step':''}" onclick="toggleStep('${id}',${i})" ${canClick||isDone?'':'disabled'}>${isDone?'✓ ':''} ${s}</button>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="ticket-header">
+        ${cat?`<div class="color-swatch" style="background:${cat.color}"></div>`:''}
+        <div class="ticket-title">${t.title}</div>
+        ${done?'<span class="badge" style="background:var(--green)22;color:var(--green)">✓ Finalizado</span>':''}
+        <button class="btn btn-danger btn-sm" onclick="deleteTicket('${id}')"><i class="fa fa-trash"></i></button>
+      </div>
+      ${t.desc?`<div style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">${t.desc}</div>`:''}
+      <div class="ticket-steps">${stepsHtml}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">Aberto em ${fmtDate(t.date)}</div>
+    `;
+    el.appendChild(card);
+  });
+}
+
+async function toggleStep(id, idx) {
+  if (!tickets[id]) return;
+  const steps = [...(tickets[id].steps || [false,false,false])];
+  steps[idx] = !steps[idx];
+  // If unchecking, uncheck all after
+  if (!steps[idx]) { for(let i=idx+1;i<3;i++) steps[i]=false; }
+  await fbUpdate(`tickets/${id}`, { steps });
+  tickets[id].steps = steps;
+  renderTickets();
+}
+
+async function deleteTicket(id) {
+  confirm('Excluir este ticket?', async () => {
+    await fbDelete(`tickets/${id}`);
+    delete tickets[id];
+    renderTickets();
+    toast('Ticket excluído.','success');
+  });
+}
+
+/* ══════════════════════════════════════════════
+   ── ABA 4: ATIVOS ──
+══════════════════════════════════════════════ */
+let schedTargetId = null;
+
+function handleXlsxUpload(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const wb = XLSX.read(e.target.result, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, {defval:''});
+    if (!json.length) { toast('Planilha vazia ou inválida.','error'); return; }
+    // Open client association dialog
+    const clientName = Object.values(accounts)[0]?.razao || 'Sem cliente';
+    const clientId = await pickClient();
+    const id = uid();
+    const data = { rows: json, clientId: clientId||'', fileName: file.name, uploadedAt: Date.now(), schedules: {} };
+    await fbSet(`ativos/${id}`, data);
+    ativos[id] = data;
+    renderAtivos();
+    toast(`${json.length} registros importados!`, 'success');
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function pickClient() {
+  return new Promise(resolve => {
+    const sel = document.createElement('select');
+    sel.innerHTML = '<option value="">— Sem cliente —</option>';
+    Object.entries(accounts).forEach(([id,a]) => { sel.innerHTML += `<option value="${id}">${a.razao}</option>`; });
+    confirm('Vincular a um cliente?', () => resolve(sel.value));
+    document.getElementById('confirm-msg').innerHTML = '';
+    document.getElementById('confirm-msg').appendChild(sel);
+    document.getElementById('confirm-ok-btn').textContent = 'Vincular';
+    document.getElementById('confirm-ok-btn').onclick = () => { closeModal('modal-confirm'); resolve(sel.value); };
+  });
+}
+
+function renderAtivos() {
+  populateAtivoClientFilter();
+  const el = document.getElementById('ativos-list');
+  const filterClient = document.getElementById('ativos-filter-client')?.value || '';
+  const search = (document.getElementById('ativos-search')?.value || '').toLowerCase();
+  const list = Object.entries(ativos).filter(([,a]) => {
+    if (filterClient && a.clientId !== filterClient) return false;
+    return true;
+  });
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fa fa-users"></i><p>Nenhuma planilha importada.</p></div>'; return;
+  }
+  el.innerHTML = '';
+  list.forEach(([id, a]) => {
+    const client = a.clientId ? accounts[a.clientId] : null;
+    const cols = a.rows?.[0] ? Object.keys(a.rows[0]) : [];
+    const filteredRows = (a.rows||[]).filter(row =>
+      !search || Object.values(row).some(v => String(v).toLowerCase().includes(search))
+    );
+    const block = document.createElement('div');
+    block.className = 'card';
+    block.style.marginBottom = '20px';
+    block.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <i class="fa fa-file-excel" style="color:var(--green)"></i>
+        <strong>${a.fileName}</strong>
+        <span style="font-size:11px;color:var(--text-sub);">· ${a.rows?.length||0} registros</span>
+        ${client?`<span class="badge" style="background:${areaColor(client.area)}22;color:${areaColor(client.area)}">${client.razao}</span>`:''}
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAtivSched('${id}')"><i class="fa fa-calendar-plus"></i> Programar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAtivo('${id}')"><i class="fa fa-trash"></i></button>
+        </div>
+      </div>
+      <div class="table-wrap" style="max-height:320px;overflow:auto;">
+        <table>
+          <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}<th>Ações</th></tr></thead>
+          <tbody>${filteredRows.slice(0,100).map((row,ri) => `
+            <tr>${cols.map(c=>`<td>${row[c]}</td>`).join('')}
+            <td><button class="btn btn-ghost btn-sm" onclick="openAtivSched('${id}',${ri})"><i class="fa fa-calendar-plus"></i></button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${filteredRows.length>100?`<div style="font-size:12px;color:var(--text-sub);padding:8px;">Mostrando 100 de ${filteredRows.length} registros. Use a busca para filtrar.</div>`:''}
+    `;
+    el.appendChild(block);
+  });
+}
+
+function populateAtivoClientFilter() {
+  const sel = document.getElementById('ativos-filter-client');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Todos os clientes</option>';
+  Object.entries(accounts).forEach(([id,a]) => {
+    sel.innerHTML += `<option value="${id}">${a.razao}</option>`;
+  });
+}
+
+function openAtivSched(ativoId, rowIdx=null) {
+  schedTargetId = { ativoId, rowIdx };
+  document.getElementById('sched-date').value = '';
+  document.getElementById('sched-obs').value = '';
+  openModal('modal-ativo-sched');
+}
+
+async function saveAtivoSched() {
+  const type = document.getElementById('sched-type').value;
+  const date = document.getElementById('sched-date').value;
+  const obs  = document.getElementById('sched-obs').value;
+  if (!date) { toast('Data obrigatória.','error'); return; }
+  const { ativoId } = schedTargetId;
+  const a = ativos[ativoId];
+  const title = `${type==='desligamento'?'Desligamento':type==='extensao'?'Extensão de Contrato':'Mudança'}: ${obs||a.fileName}`;
+  const evData = { title, date, type:'outro', clientId: a.clientId||'', obs, source:'ativo' };
+  const ref = await fbPush('calEvents', evData);
+  calEvents[ref.key] = evData;
+  closeModal('modal-ativo-sched');
+  toast('Evento adicionado ao Calendário Sales!','success');
+}
+
+async function deleteAtivo(id) {
+  confirm('Excluir esta planilha?', async () => {
+    await fbDelete(`ativos/${id}`);
+    delete ativos[id];
+    renderAtivos();
+    toast('Planilha removida.','success');
+  });
+}
+
+// Drag & drop for xlsx
+document.getElementById('xlsx-drop-zone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
+document.getElementById('xlsx-drop-zone').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
+document.getElementById('xlsx-drop-zone').addEventListener('drop', e => {
+  e.preventDefault(); e.currentTarget.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const fake = { files:[file] };
+  handleXlsxUpload(fake);
+});
+
+/* ══════════════════════════════════════════════
+   ── ABA 5: DOCUMENTOS ──
+══════════════════════════════════════════════ */
+let pendingDocFile = null;
+
+function handleDocUpload(input) {
+  const file = input.files[0]; if (!file) return;
+  pendingDocFile = file;
+  document.getElementById('doc-name-input').value = file.name.replace(/\.[^.]+$/,'');
+  // populate client select
+  const sel = document.getElementById('doc-client-select');
+  sel.innerHTML = '<option value="">— Sem cliente —</option>';
+  Object.entries(accounts).forEach(([id,a]) => { sel.innerHTML += `<option value="${id}">${a.razao}</option>`; });
+  openModal('modal-doc-name');
+  input.value = '';
+}
+
+async function confirmDocSave() {
+  if (!pendingDocFile) return;
+  const name = document.getElementById('doc-name-input').value.trim() || pendingDocFile.name;
+  const clientId = document.getElementById('doc-client-select').value;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const data = {
+      name, clientId, fileName: pendingDocFile.name,
+      mimeType: pendingDocFile.type,
+      size: pendingDocFile.size,
+      uploadedAt: Date.now(),
+      base64: e.target.result
+    };
+    if (data.size > 4 * 1024 * 1024) { toast('Arquivo muito grande (máx 4MB para Firebase).','error'); return; }
+    const ref = await fbPush('docs', data);
+    docs[ref.key] = data;
+    closeModal('modal-doc-name');
+    renderDocs();
+    toast('Documento salvo!','success');
+    pendingDocFile = null;
+  };
+  reader.readAsDataURL(pendingDocFile);
+}
+
+function renderDocs() {
+  const el = document.getElementById('docs-list');
+  const search = (document.getElementById('docs-search')?.value||'').toLowerCase();
+  const filterClient = document.getElementById('docs-filter-client')?.value||'';
+  const list = Object.entries(docs).filter(([,d]) => {
+    if (filterClient && d.clientId !== filterClient) return false;
+    return d.name.toLowerCase().includes(search);
+  }).sort((a,b) => b[1].uploadedAt - a[1].uploadedAt);
+  if (!list.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-folder-open"></i><p>Nenhum documento encontrado.</p></div>'; return; }
+  el.innerHTML = list.map(([id,d]) => {
+    const client = d.clientId ? accounts[d.clientId] : null;
+    const ext = d.fileName?.split('.').pop()?.toUpperCase() || 'FILE';
+    const size = d.size > 1024*1024 ? (d.size/1024/1024).toFixed(1)+'MB' : (d.size/1024).toFixed(0)+'KB';
+    return `
+      <div class="doc-card">
+        <div class="doc-icon"><i class="fa fa-file"></i></div>
+        <div class="doc-info">
+          <div class="doc-name">${d.name}</div>
+          <div class="doc-meta">${ext} · ${size} · ${fmtDate(new Date(d.uploadedAt).toISOString().split('T')[0])} ${client?'· '+client.razao:''}</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="${d.base64}" download="${d.fileName}"><i class="fa fa-download"></i></a>
+        <button class="btn btn-danger btn-sm" onclick="deleteDoc('${id}')"><i class="fa fa-trash"></i></button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function deleteDoc(id) {
+  confirm('Excluir este documento?', async () => {
+    await fbDelete(`docs/${id}`);
+    delete docs[id];
+    renderDocs();
+    toast('Documento excluído.','success');
+  });
+}
+
+// Drag & drop for docs
+document.getElementById('doc-drop-zone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
+document.getElementById('doc-drop-zone').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
+document.getElementById('doc-drop-zone').addEventListener('drop', e => {
+  e.preventDefault(); e.currentTarget.classList.remove('dragover');
+  const file = e.dataTransfer.files[0]; if (!file) return;
+  pendingDocFile = file;
+  document.getElementById('doc-name-input').value = file.name.replace(/\.[^.]+$/,'');
+  const sel = document.getElementById('doc-client-select');
+  sel.innerHTML = '<option value="">— Sem cliente —</option>';
+  Object.entries(accounts).forEach(([id,a]) => { sel.innerHTML += `<option value="${id}">${a.razao}</option>`; });
+  openModal('modal-doc-name');
+});
+
+/* ══════════════════════════════════════════════
+   POPULATE SELECTS
+══════════════════════════════════════════════ */
+function populateClientSelects() {
+  ['docs-filter-client','doc-client-select','cal-client'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const curr = sel.value;
+    sel.innerHTML = `<option value="">${id.includes('filter')?'Todos os clientes':'— Sem cliente —'}</option>`;
+    Object.entries(accounts).forEach(([aid,a]) => {
+      const opt = document.createElement('option');
+      opt.value = aid; opt.textContent = a.razao;
+      if (curr === aid) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', async () => {
+  initFirebase();
+  // Check if Firebase is configured
+  const isConfigured = FIREBASE_CONFIG.apiKey !== 'COLE_SEU_API_KEY_AQUI';
+  document.getElementById('loading').style.display = 'none';
+  if (!isConfigured) {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-error').textContent = '⚠ Firebase não configurado. Siga o guia no README.';
+    document.getElementById('login-error').style.color = 'orange';
+    // Still allow UI preview
+  }
+  document.getElementById('login-screen').style.display = 'flex';
+  // Enter key on login
+  document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+});
+</script>
+</body>
+</html>
