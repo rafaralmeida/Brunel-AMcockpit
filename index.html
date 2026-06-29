@@ -600,6 +600,17 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
                 <div id="detail-address-body" style="font-size:13px;line-height:2;"></div>
               </div>
             </div>
+
+            <div class="card" style="margin-top:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <div class="section-title" style="margin-bottom:0;">Jornada de Trabalho</div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm" onclick="copyJornadas()" title="Copiar tudo"><i class="fa fa-copy"></i> Copiar</button>
+                  <button class="btn btn-yellow btn-sm" onclick="openJornadaModal()"><i class="fa fa-plus"></i> Modalidade</button>
+                </div>
+              </div>
+              <div id="jornadas-display"></div>
+            </div>
           </div>
 
           <!-- BENEFITS -->
@@ -768,7 +779,27 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
     </div>
   </div>
 </div>
-
+<!-- Jornada Modal -->
+<div class="modal-overlay" id="modal-jornada">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-jornada-title">Nova Modalidade</span>
+      <button class="modal-close" onclick="closeModal('modal-jornada')">×</button>
+    </div>
+    <div class="form-group">
+      <label>Modalidade</label>
+      <input id="jornada-modalidade" placeholder="Ex: Administrativo, Offshore, Turno…"/>
+    </div>
+    <div class="form-group">
+      <label>Descrição da Jornada</label>
+      <textarea id="jornada-descricao" rows="4" placeholder="Ex: Segunda a Sexta, 08h às 17h, presencial…" style="width:100%;resize:vertical;padding:10px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-main);"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-jornada')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveJornada()">Salvar</button>
+    </div>
+  </div>
+</div>
 <!-- Benefits Modal -->
 <div class="modal-overlay" id="modal-benefit">
   <div class="modal">
@@ -1387,6 +1418,7 @@ function openAccountDetail(id) {
   document.querySelectorAll('.detail-tab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.detail-tab')[0].classList.add('active');
   renderBenefits(id);
+  renderJornadas(id);
 }
 
 function backToAccounts() {
@@ -1413,7 +1445,89 @@ async function saveBenefits() {
   closeModal('modal-benefit');
   toast('Benefícios salvos!', 'success');
 }
+/* ── Jornada de Trabalho ── */
+let editingJornadaId = null;
 
+function renderJornadas(accountId) {
+  const el = document.getElementById('jornadas-display');
+  if (!el) return;
+  const jornadas = accounts[accountId]?.jornadas || {};
+  const entries = Object.entries(jornadas);
+  if (!entries.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Nenhuma modalidade. Clique em "+ Modalidade" para adicionar.</div>';
+    return;
+  }
+  el.innerHTML = entries.map(([id, j]) => `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:13px;color:var(--yellow);">${j.modalidade}</div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" onclick="copyJornadaSingle('${accountId}','${id}')" title="Copiar"><i class="fa fa-copy"></i></button>
+          <button class="btn btn-ghost btn-sm" onclick="openJornadaModal('${id}')"><i class="fa fa-pen"></i></button>
+          <button class="btn btn-danger btn-sm" onclick="deleteJornada('${accountId}','${id}')"><i class="fa fa-trash"></i></button>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-sub);white-space:pre-wrap;line-height:1.6;">${j.descricao || '—'}</div>
+    </div>
+  `).join('');
+}
+
+function openJornadaModal(editId = null) {
+  editingJornadaId = editId;
+  const j = editId ? (accounts[currentAccountId]?.jornadas?.[editId]) : null;
+  document.getElementById('modal-jornada-title').textContent = editId ? 'Editar Modalidade' : 'Nova Modalidade';
+  document.getElementById('jornada-modalidade').value = j?.modalidade || '';
+  document.getElementById('jornada-descricao').value = j?.descricao || '';
+  openModal('modal-jornada');
+  setTimeout(() => document.getElementById('jornada-modalidade').focus(), 100);
+}
+
+async function saveJornada() {
+  const modalidade = document.getElementById('jornada-modalidade').value.trim();
+  const descricao  = document.getElementById('jornada-descricao').value.trim();
+  if (!modalidade) { toast('Nome da modalidade é obrigatório.', 'error'); return; }
+  const data = { modalidade, descricao };
+  if (editingJornadaId) {
+    await fbUpdate(`accounts/${currentAccountId}/jornadas/${editingJornadaId}`, data);
+    if (!accounts[currentAccountId].jornadas) accounts[currentAccountId].jornadas = {};
+    accounts[currentAccountId].jornadas[editingJornadaId] = data;
+  } else {
+    const ref = await fbPush(`accounts/${currentAccountId}/jornadas`, data);
+    if (!accounts[currentAccountId].jornadas) accounts[currentAccountId].jornadas = {};
+    accounts[currentAccountId].jornadas[ref.key] = data;
+  }
+  closeModal('modal-jornada');
+  renderJornadas(currentAccountId);
+  toast('Jornada salva!', 'success');
+}
+
+async function deleteJornada(accountId, id) {
+  confirm('Excluir esta modalidade?', async () => {
+    await fbDelete(`accounts/${accountId}/jornadas/${id}`);
+    delete accounts[accountId].jornadas[id];
+    renderJornadas(accountId);
+    toast('Modalidade removida.', 'success');
+  });
+}
+
+function copyJornadas() {
+  const jornadas = accounts[currentAccountId]?.jornadas || {};
+  const entries = Object.values(jornadas);
+  if (!entries.length) { toast('Nenhuma jornada para copiar.', 'error'); return; }
+  const text = entries.map(j => `${j.modalidade}:\n${j.descricao || '—'}`).join('\n\n');
+  navigator.clipboard.writeText(text)
+    .then(() => toast('Jornadas copiadas!', 'success'))
+    .catch(() => toast('Erro ao copiar.', 'error'));
+}
+
+function copyJornadaSingle(accountId, id) {
+  const j = accounts[accountId]?.jornadas?.[id];
+  if (!j) return;
+  const text = `${j.modalidade}:\n${j.descricao || '—'}`;
+  navigator.clipboard.writeText(text)
+    .then(() => toast('Copiado!', 'success'))
+    .catch(() => toast('Erro ao copiar.', 'error'));
+}
 function renderBenefits(id) {
   const b = accounts[id]?.benefits || {};
   const defs = [
