@@ -539,6 +539,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
       <button class="nav-item" data-tab="tab-ativos" onclick="switchTab('tab-ativos',this)">
         <i class="fa fa-users"></i> Ativos
       </button>
+      <button class="nav-item" data-tab="tab-onboarding" onclick="switchTab('tab-onboarding',this)">
+        <i class="fa fa-user-check"></i> Onboarding
+      </button>
       <button class="nav-item" data-tab="tab-docs" onclick="switchTab('tab-docs',this)">
         <i class="fa fa-folder-open"></i> Documentos
       </button>
@@ -719,6 +722,50 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
         <div id="ativos-list"></div>
       </div>
 
+      <!-- ═══════════════════════════════════════
+           ABA — ONBOARDING
+      ═══════════════════════════════════════ -->
+      <div id="tab-onboarding" class="tab-page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Onboarding</div>
+            <div class="page-subtitle">Controle de onboardings por planilha</div>
+          </div>
+          <button class="btn btn-yellow" onclick="document.getElementById('ob-upload').click()">
+            <i class="fa fa-upload"></i> Importar Planilha
+          </button>
+        </div>
+        <input type="file" id="ob-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleObUpload(this)"/>
+
+        <div class="upload-zone" id="ob-drop-zone" onclick="document.getElementById('ob-upload').click()">
+          <i class="fa fa-file-excel"></i>
+          <p>Arraste a planilha de onboarding <strong>.xlsx</strong> aqui ou <span>clique para selecionar</span></p>
+        </div>
+
+        <!-- Sumário -->
+        <div class="grid-3" style="margin-bottom:16px;" id="ob-summary" style="display:none;"></div>
+
+        <!-- Filtros -->
+        <div class="filters-bar" id="ob-filters" style="display:none;">
+          <input type="text" id="ob-search" placeholder="Buscar candidato, empresa, AM…" oninput="renderOnboarding()" style="flex:1;min-width:180px;"/>
+          <select id="ob-filter-am" onchange="renderOnboarding()"><option value="">Todos os AMs</option></select>
+          <select id="ob-filter-compareceu" onchange="renderOnboarding()">
+            <option value="">Todos os status</option>
+            <option value="sim">Compareceu</option>
+            <option value="nao">Não compareceu</option>
+            <option value="pendente">Pendente</option>
+          </select>
+          <select id="ob-filter-modelo" onchange="renderOnboarding()">
+            <option value="">Todos os modelos</option>
+            <option>Client's office</option>
+            <option>Online</option>
+            <option>Presencial</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearObFilters()"><i class="fa fa-xmark"></i> Limpar</button>
+        </div>
+
+        <div id="ob-list"></div>
+      </div>
       <!-- ═══════════════════════════════════════
            ABA 5 — DOCUMENTOS
       ═══════════════════════════════════════ -->
@@ -1213,6 +1260,7 @@ function switchTab(tabId, btn) {
   if (tabId === 'tab-calendar') renderCalendar();
   if (tabId === 'tab-freshdesk') { renderTickets(); renderFdCategories(); }
   if (tabId === 'tab-ativos') renderAtivos();
+  if (tabId === 'tab-onboarding') renderOnboarding();
   if (tabId === 'tab-docs') renderDocs();
 }
 
@@ -1289,6 +1337,7 @@ function fmtDate(d) {
    GLOBAL STATE (fetched from Firebase)
 ══════════════════════════════════════════════ */
 let accounts = {};
+let onboardings = {};
 let calEvents = {};
 let tickets = {};
 let fdCats = {};
@@ -1298,6 +1347,7 @@ let docs = {};
 async function renderAll() {
   await Promise.all([
     fbGet('accounts').then(d => { accounts = d || {}; }),
+    fbGet('onboardings').then(d => { onboardings = d || {}; }),
     fbGet('calEvents').then(d => { calEvents = d || {}; }),
     fbGet('tickets').then(d => { tickets = d || {}; }),
     fbGet('fdCats').then(d => { fdCats = d || {}; }),
@@ -1309,8 +1359,8 @@ async function renderAll() {
   renderTickets();
   renderFdCategories();
   renderAtivos();
+  renderOnboarding();
   renderDocs();
-  populateClientSelects();
 }
 
 /* ══════════════════════════════════════════════
@@ -2128,6 +2178,213 @@ async function deleteAtivo(id) {
   });
 }
 
+/* ══════════════════════════════════════════════
+   ── ABA ONBOARDING ──
+══════════════════════════════════════════════ */
+
+// Converte serial do Excel para data legível (dd/mm/aaaa)
+function excelDateToStr(val) {
+  if (!val && val !== 0) return '—';
+  if (typeof val === 'string' && val.includes('/')) return val;
+  const n = Number(val);
+  if (isNaN(n) || n < 1000) return val || '—';
+  const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+  return d.toLocaleDateString('pt-BR');
+}
+
+function obStatus(row) {
+  const c = String(row['Compareceu?'] || '').trim().toLowerCase();
+  if (c === 'sim') return 'sim';
+  if (c === '') return 'pendente';
+  return 'nao';
+}
+
+function obStatusBadge(status) {
+  if (status === 'sim')     return `<span class="badge" style="background:#22c55e22;color:#22c55e;">✓ Compareceu</span>`;
+  if (status === 'pendente') return `<span class="badge" style="background:#f59e0b22;color:#f59e0b;">⏳ Pendente</span>`;
+  return `<span class="badge" style="background:#ef444422;color:#ef4444;">✗ Não compareceu</span>`;
+}
+
+function handleObUpload(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (!json.length) { toast('Planilha vazia ou inválida.', 'error'); return; }
+    const id = uid();
+    const data = { rows: json, fileName: file.name, uploadedAt: Date.now() };
+    await fbSet(`onboardings/${id}`, data);
+    onboardings[id] = data;
+    renderOnboarding();
+    toast(`${json.length} registros de onboarding importados!`, 'success');
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function clearObFilters() {
+  ['ob-search','ob-filter-am','ob-filter-compareceu','ob-filter-modelo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderOnboarding();
+}
+
+function renderOnboarding() {
+  const listEl   = document.getElementById('ob-list');
+  const summaryEl = document.getElementById('ob-summary');
+  const filtersEl = document.getElementById('ob-filters');
+  if (!listEl) return;
+
+  // Collect all rows across all uploads
+  const allRows = [];
+  Object.entries(onboardings).forEach(([uploadId, upload]) => {
+    (upload.rows || []).forEach((row, ri) => {
+      allRows.push({ row, uploadId, ri, fileName: upload.fileName });
+    });
+  });
+
+  if (!allRows.length) {
+    if (summaryEl) summaryEl.style.display = 'none';
+    if (filtersEl) filtersEl.style.display = 'none';
+    listEl.innerHTML = '<div class="empty-state"><i class="fa fa-user-check"></i><p>Nenhuma planilha de onboarding importada.</p></div>';
+    return;
+  }
+
+  // Show filters and summary
+  if (filtersEl) filtersEl.style.display = 'flex';
+
+  // Populate AM filter
+  const amSel = document.getElementById('ob-filter-am');
+  if (amSel) {
+    const ams = [...new Set(allRows.map(({row}) => (row['AM']||'').trim()).filter(Boolean))].sort();
+    const curr = amSel.value;
+    amSel.innerHTML = '<option value="">Todos os AMs</option>';
+    ams.forEach(am => { amSel.innerHTML += `<option${curr===am?' selected':''}>${am}</option>`; });
+  }
+
+  // Apply filters
+  const search    = (document.getElementById('ob-search')?.value || '').toLowerCase();
+  const filterAm  = document.getElementById('ob-filter-am')?.value || '';
+  const filterCmp = document.getElementById('ob-filter-compareceu')?.value || '';
+  const filterMod = document.getElementById('ob-filter-modelo')?.value || '';
+
+  const filtered = allRows.filter(({ row }) => {
+    const status = obStatus(row);
+    if (filterAm  && (row['AM']||'').trim() !== filterAm) return false;
+    if (filterCmp && status !== filterCmp) return false;
+    if (filterMod && !String(row['Modelo']||'').toLowerCase().includes(filterMod.toLowerCase())) return false;
+    if (search && !Object.values(row).some(v => String(v).toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  // Summary cards
+  const total    = filtered.length;
+  const sim      = filtered.filter(({row}) => obStatus(row) === 'sim').length;
+  const pendente = filtered.filter(({row}) => obStatus(row) === 'pendente').length;
+  const nao      = filtered.filter(({row}) => obStatus(row) === 'nao').length;
+
+  if (summaryEl) {
+    summaryEl.style.display = 'grid';
+    summaryEl.innerHTML = `
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px;font-weight:700;">${total}</div>
+        <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">Total</div>
+      </div>
+      <div class="card" style="text-align:center;border-top:3px solid var(--green);">
+        <div style="font-size:28px;font-weight:700;color:var(--green);">${sim}</div>
+        <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">Compareceram</div>
+      </div>
+      <div class="card" style="text-align:center;border-top:3px solid #f59e0b;">
+        <div style="font-size:28px;font-weight:700;color:#f59e0b;">${pendente}</div>
+        <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">Pendentes</div>
+      </div>
+    `;
+  }
+
+  // Table
+  listEl.innerHTML = '';
+
+  // Group by upload file for the delete button
+  const byUpload = {};
+  filtered.forEach(item => {
+    if (!byUpload[item.uploadId]) byUpload[item.uploadId] = { fileName: item.fileName, rows: [] };
+    byUpload[item.uploadId].rows.push(item.row);
+  });
+
+  Object.entries(byUpload).forEach(([uploadId, group]) => {
+    const block = document.createElement('div');
+    block.className = 'card';
+    block.style.marginBottom = '20px';
+
+    const rows = group.rows;
+    const rowsHtml = rows.map(row => {
+      const status = obStatus(row);
+      const rowBg  = status === 'sim' ? '#22c55e0a' : status === 'nao' ? '#ef44440a' : '';
+      return `<tr style="background:${rowBg};">
+        <td><strong>${row['Candidato'] || '—'}</strong></td>
+        <td style="font-size:11px;">${row['Empresa'] || '—'}</td>
+        <td style="font-size:11px;">${row['Setor'] || '—'}</td>
+        <td style="font-size:11px;">${row['Função'] || '—'}</td>
+        <td style="font-size:11px;white-space:nowrap;">${excelDateToStr(row['Data de Admissão (previsão)'])}</td>
+        <td style="font-size:11px;white-space:nowrap;">${excelDateToStr(row['Data Onboarding'])}</td>
+        <td>${obStatusBadge(status)}</td>
+        <td style="font-size:11px;">${row['Modelo'] || '—'}</td>
+        <td style="font-size:11px;">${row['AM'] || '—'}</td>
+        <td style="font-size:11px;color:var(--text-sub);">${row['Observação'] || row['Motivo'] || ''}</td>
+      </tr>`;
+    }).join('');
+
+    block.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <i class="fa fa-file-excel" style="color:var(--green)"></i>
+        <strong>${group.fileName}</strong>
+        <span style="font-size:11px;color:var(--text-sub);">· ${rows.length} registro(s)</span>
+        <div style="margin-left:auto;">
+          <button class="btn btn-danger btn-sm" onclick="deleteOnboarding('${uploadId}')"><i class="fa fa-trash"></i> Remover planilha</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Candidato</th><th>Empresa</th><th>Setor</th><th>Função</th>
+              <th>Admissão (prev.)</th><th>Onboarding</th><th>Status</th>
+              <th>Modelo</th><th>AM</th><th>Obs.</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    `;
+    listEl.appendChild(block);
+  });
+}
+
+async function deleteOnboarding(id) {
+  confirm('Remover esta planilha de onboarding?', async () => {
+    await fbDelete(`onboardings/${id}`);
+    delete onboardings[id];
+    renderOnboarding();
+    toast('Planilha removida.', 'success');
+  });
+}
+
+// Drag & drop para onboarding
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('ob-drop-zone');
+  if (zone) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0]; if (!file) return;
+      handleObUpload({ files: [file], value: '' });
+    });
+  }
+});
 // Drag & drop for xlsx
 document.getElementById('xlsx-drop-zone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
 document.getElementById('xlsx-drop-zone').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
