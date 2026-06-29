@@ -431,6 +431,18 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
   #main { margin-left: 0; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
 }
+/* Onboarding — células editáveis */
+#ob-list td[contenteditable]:focus {
+  background: var(--bg-hover);
+  outline: 1px solid var(--yellow);
+  border-radius: 3px;
+}
+#ob-list td[contenteditable] { cursor: text; min-width: 60px; }
+#ob-list select.ob-status-sel {
+  font-size: 11px; padding: 3px 6px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg-card);
+  color: var(--text-main); cursor: pointer; width: 100%;
+}
 </style>
 </head>
 <body>
@@ -2307,11 +2319,11 @@ function renderOnboarding() {
   // Table
   listEl.innerHTML = '';
 
-  // Group by upload file for the delete button
+  // Group by upload file — mantém ri (índice original) para salvar no Firebase
   const byUpload = {};
   filtered.forEach(item => {
-    if (!byUpload[item.uploadId]) byUpload[item.uploadId] = { fileName: item.fileName, rows: [] };
-    byUpload[item.uploadId].rows.push(item.row);
+    if (!byUpload[item.uploadId]) byUpload[item.uploadId] = { fileName: item.fileName, items: [] };
+    byUpload[item.uploadId].items.push(item);
   });
 
   Object.entries(byUpload).forEach(([uploadId, group]) => {
@@ -2319,21 +2331,32 @@ function renderOnboarding() {
     block.className = 'card';
     block.style.marginBottom = '20px';
 
-    const rows = group.rows;
-    const rowsHtml = rows.map(row => {
+    const items = group.items;
+    const rowsHtml = items.map(({ row, ri }) => {
       const status = obStatus(row);
       const rowBg  = status === 'sim' ? '#22c55e0a' : status === 'nao' ? '#ef44440a' : '';
-      return `<tr style="background:${rowBg};">
-        <td><strong>${row['Candidato'] || '—'}</strong></td>
-        <td style="font-size:11px;">${row['Empresa'] || '—'}</td>
-        <td style="font-size:11px;">${row['Setor'] || '—'}</td>
-        <td style="font-size:11px;">${row['Função'] || '—'}</td>
-        <td style="font-size:11px;white-space:nowrap;">${excelDateToStr(row['Data de Admissão (previsão)'])}</td>
-        <td style="font-size:11px;white-space:nowrap;">${excelDateToStr(row['Data Onboarding'])}</td>
-        <td>${obStatusBadge(status)}</td>
-        <td style="font-size:11px;">${row['Modelo'] || '—'}</td>
-        <td style="font-size:11px;">${row['AM'] || '—'}</td>
-        <td style="font-size:11px;color:var(--text-sub);">${row['Observação'] || row['Motivo'] || ''}</td>
+      const cmp    = String(row['Compareceu?'] || '').toLowerCase();
+      const selHtml = `<select class="ob-status-sel"
+        onchange="saveObCell('${uploadId}',${ri},'Compareceu?',this.value);updateObRowStyle('${uploadId}',${ri},this.value);">
+        <option value=""   ${cmp===''              ?'selected':''}>⏳ Pendente</option>
+        <option value="Sim"${cmp==='sim'            ?'selected':''}>✓ Compareceu</option>
+        <option value="Não"${cmp==='não'||cmp==='nao'?'selected':''}>✗ Não compareceu</option>
+      </select>`;
+      const ce = (field, val, extra='') =>
+        `<td contenteditable="true" style="font-size:11px;${extra}"
+          onblur="saveObCell('${uploadId}',${ri},'${field}',this.textContent.trim())"
+        >${val}</td>`;
+      return `<tr id="ob-row-${uploadId}-${ri}" style="background:${rowBg};">
+        ${ce('Candidato',      row['Candidato']||'',                              'font-weight:700;')}
+        ${ce('Empresa',        row['Empresa']||'')}
+        ${ce('Setor',          row['Setor']||'')}
+        ${ce('Função',         row['Função']||'')}
+        ${ce('Data de Admissão (previsão)', excelDateToStr(row['Data de Admissão (previsão)']), 'white-space:nowrap;')}
+        ${ce('Data Onboarding',excelDateToStr(row['Data Onboarding']),             'white-space:nowrap;')}
+        <td>${selHtml}</td>
+        ${ce('Modelo',         row['Modelo']||'')}
+        ${ce('AM',             row['AM']||'')}
+        ${ce('Observação',     row['Observação']||row['Motivo']||'',              'color:var(--text-sub);')}
       </tr>`;
     }).join('');
 
@@ -2363,6 +2386,34 @@ function renderOnboarding() {
   });
 }
 
+async function saveObCell(uploadId, rowIdx, field, value) {
+  if (!onboardings[uploadId]?.rows?.[rowIdx]) return;
+  onboardings[uploadId].rows[rowIdx][field] = value;
+  try {
+    await fbUpdate(`onboardings/${uploadId}/rows/${rowIdx}`, { [field]: value });
+  } catch(e) {
+    console.warn('Salvo localmente. Firebase:', e);
+  }
+}
+
+function updateObRowStyle(uploadId, ri, val) {
+  const row = document.getElementById(`ob-row-${uploadId}-${ri}`);
+  if (!row) return;
+  const v = val.toLowerCase();
+  row.style.background = v === 'sim' ? '#22c55e0a' : (v === 'não' || v === 'nao') ? '#ef44440a' : '';
+  // Atualiza sumário sem re-renderizar toda a tabela
+  const allRows = Object.values(onboardings).flatMap(u => Object.values(u.rows || {}));
+  const sim = allRows.filter(r => String(r['Compareceu?']||'').toLowerCase() === 'sim').length;
+  const pend = allRows.filter(r => !String(r['Compareceu?']||'').trim()).length;
+  const sumEl = document.getElementById('ob-summary');
+  if (sumEl) sumEl.querySelectorAll('.card').forEach((c, i) => {
+    const num = c.querySelector('[style*="font-size:28px"]');
+    if (!num) return;
+    if (i === 0) num.textContent = allRows.length;
+    if (i === 1) num.textContent = sim;
+    if (i === 2) num.textContent = pend;
+  });
+}
 async function deleteOnboarding(id) {
   confirm('Remover esta planilha de onboarding?', async () => {
     await fbDelete(`onboardings/${id}`);
