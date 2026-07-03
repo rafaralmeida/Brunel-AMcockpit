@@ -745,14 +745,14 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
           </div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-ghost btn-sm" onclick="cleanObCalDuplicates()" title="Remove eventos duplicados do calendário" style="color:var(--red);border-color:var(--red);">
-              <i class="fa fa-broom"></i> Limpar duplicatas
-            </button>
-            <button class="btn btn-ghost btn-sm" onclick="cleanObCalDuplicates()" style="color:var(--red);border-color:var(--red);">
-              <i class="fa fa-plus"></i> Novo Onboarding
-            </button>
-            <button class="btn btn-yellow" onclick="document.getElementById('ob-upload').click()">
-              <i class="fa fa-upload"></i> Importar Planilha
-            </button>
+        <i class="fa fa-broom"></i> Limpar duplicatas
+      </button>
+      <button class="btn btn-ghost" onclick="openObEntryModal()">
+        <i class="fa fa-plus"></i> Novo Onboarding
+      </button>
+      <button class="btn btn-yellow" onclick="document.getElementById('ob-upload').click()">
+        <i class="fa fa-upload"></i> Importar Planilha
+      </button>
           </div>
         </div>
         <input type="file" id="ob-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleObUpload(this)"/>
