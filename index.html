@@ -744,6 +744,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
             <div class="page-subtitle">Controle de onboardings por planilha</div>
           </div>
           <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="cleanObCalDuplicates()" title="Remove eventos duplicados do calendário" style="color:var(--red);border-color:var(--red);">
+              <i class="fa fa-broom"></i> Limpar duplicatas
+            </button>
             <button class="btn btn-ghost" onclick="openObEntryModal()">
               <i class="fa fa-plus"></i> Novo Onboarding
             </button>
@@ -2597,25 +2600,35 @@ async function saveObEntry() {
 async function addObToCalendar(uploadId, ri) {
   const row = onboardings[uploadId]?.rows?.[ri];
   if (!row) return;
-  const dateRaw = row['Data Onboarding'];
-  let dateStr = '';
-  if (dateRaw) {
-    const n = Number(dateRaw);
-    if (!isNaN(n) && n > 1000) {
-      dateStr = new Date(Math.round((n - 25569) * 86400 * 1000)).toISOString().split('T')[0];
-    } else if (typeof dateRaw === 'string' && dateRaw.includes('/')) {
-      const [d, m, y] = dateRaw.split('/');
-      dateStr = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-    } else {
-      dateStr = dateRaw;
-    }
+  const existingCalId = row._calEventId || null;
+  const calId = await obRowToCalEvent(row, existingCalId);
+  if (!calId) { toast('Onboarding sem data definida.', 'error'); return; }
+  if (calId !== existingCalId) {
+    onboardings[uploadId].rows[ri]._calEventId = calId;
+    await fbUpdate(`onboardings/${uploadId}/rows/${ri}`, { _calEventId: calId });
   }
-  if (!dateStr) { toast('Onboarding sem data definida.', 'error'); return; }
-  const title = `Onboarding — ${row['Candidato'] || ''}${row['Empresa'] ? ' · ' + row['Empresa'] : ''}`;
-  const evData = { title, date: dateStr, type: 'onboarding', obs: `${row['Função']||''} ${row['AM']?'· '+row['AM']:''}`.trim(), source: 'onboarding', color: OB_CAL_COLOR };
-  const ref = await fbPush('calEvents', evData);
-  calEvents[ref.key] = evData;
-  toast('Marcado no Calendário Sales!', 'success');
+  toast(existingCalId ? 'Evento atualizado no Calendário Sales!' : 'Marcado no Calendário Sales!', 'success');
+}
+     async function cleanObCalDuplicates() {
+  const obEvents = Object.entries(calEvents).filter(([,e]) => e.source === 'onboarding');
+  // Agrupa por título + data — mantém só o mais antigo de cada grupo
+  const seen = {};
+  const toDelete = [];
+  obEvents.forEach(([id, e]) => {
+    const key = `${e.title}__${e.date}`;
+    if (seen[key]) {
+      toDelete.push(id);
+    } else {
+      seen[key] = id;
+    }
+  });
+  if (!toDelete.length) { toast('Nenhum duplicado encontrado.', 'info'); return; }
+  for (const id of toDelete) {
+    await fbDelete(`calEvents/${id}`);
+    delete calEvents[id];
+  }
+  toast(`${toDelete.length} evento(s) duplicado(s) removido(s).`, 'success');
+  renderCalendar();
 }
 async function deleteOnboarding(id) {
   confirm('Remover esta planilha de onboarding?', async () => {
