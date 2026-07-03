@@ -743,9 +743,14 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
             <div class="page-title">Onboarding</div>
             <div class="page-subtitle">Controle de onboardings por planilha</div>
           </div>
-          <button class="btn btn-yellow" onclick="document.getElementById('ob-upload').click()">
-            <i class="fa fa-upload"></i> Importar Planilha
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" onclick="openObEntryModal()">
+              <i class="fa fa-plus"></i> Novo Onboarding
+            </button>
+            <button class="btn btn-yellow" onclick="document.getElementById('ob-upload').click()">
+              <i class="fa fa-upload"></i> Importar Planilha
+            </button>
+          </div>
         </div>
         <input type="file" id="ob-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleObUpload(this)"/>
 
@@ -835,6 +840,52 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancelar</button>
       <button class="btn btn-yellow" onclick="saveAccount()">Salvar</button>
+    </div>
+  </div>
+</div>
+     <!-- Onboarding Entry Modal -->
+<div class="modal-overlay" id="modal-ob-entry">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-ob-entry-title">Novo Onboarding</span>
+      <button class="modal-close" onclick="closeModal('modal-ob-entry')">×</button>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Candidato *</label><input id="ob-e-candidato" placeholder="Nome completo"/></div>
+      <div class="form-group"><label>Empresa</label><input id="ob-e-empresa" placeholder="Cliente (Brunel)"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Setor</label><input id="ob-e-setor" placeholder="Ex: Administrativo"/></div>
+      <div class="form-group"><label>Função</label><input id="ob-e-funcao" placeholder="Cargo"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Data de Admissão (previsão)</label><input type="date" id="ob-e-admissao"/></div>
+      <div class="form-group"><label>Data Onboarding</label><input type="date" id="ob-e-onboarding"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Modelo</label>
+        <select id="ob-e-modelo">
+          <option value="">Selecione…</option>
+          <option>Client's office</option>
+          <option>Presencial</option>
+          <option>Online</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Compareceu?</label>
+        <select id="ob-e-compareceu">
+          <option value="">⏳ Pendente</option>
+          <option value="Sim">✓ Compareceu</option>
+          <option value="Não">✗ Não compareceu</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>AM</label><input id="ob-e-am" placeholder="Account Manager"/></div>
+      <div class="form-group"><label>Observação</label><input id="ob-e-obs" placeholder="Detalhes…"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-ob-entry')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveObEntry()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1350,6 +1401,7 @@ function fmtDate(d) {
 ══════════════════════════════════════════════ */
 let accounts = {};
 let onboardings = {};
+const OB_CAL_COLOR = '#06b6d4'; // ciano — cor padrão de onboardings no calendário
 let calEvents = {};
 let tickets = {};
 let fdCats = {};
@@ -1817,6 +1869,13 @@ function renderCalLegend() {
     item.innerHTML = `<div class="cal-legend-dot" style="background:var(--red)"></div>Eventos de Ativos`;
     el.appendChild(item);
   }
+  const hasOnb = Object.values(calEvents).some(e => e.source === 'onboarding');
+  if (hasOnb) {
+    const item = document.createElement('div');
+    item.className = 'cal-legend-item';
+    item.innerHTML = `<div class="cal-legend-dot" style="background:${OB_CAL_COLOR}"></div>Onboardings`;
+    el.appendChild(item);
+  }
 }
 
 function getEventsForDate(dateStr) {
@@ -1847,7 +1906,7 @@ function renderCalMonth() {
     const evs = getEventsForDate(dateStr);
     let evHtml = evs.map(([id,e]) => {
       const acc = e.clientId ? accounts[e.clientId] : null;
-      const color = e.source==='ativo' ? 'var(--red)' : (acc ? areaColor(acc.area) : '#888');
+      const color = e.source==='ativo' ? 'var(--red)' : e.source==='onboarding' ? OB_CAL_COLOR : (acc ? areaColor(acc.area) : '#888');
       return `<div class="cal-event" style="background:${color}" title="${e.title}" onclick="openCalModal('${id}');event.stopPropagation();">${e.source==='ativo'?'⚠ ':''}${e.title}</div>`;
     }).join('');
     html += `<div class="cal-cell${isToday?' today':''}" onclick="openCalModal(null,'${dateStr}')">
@@ -1873,7 +1932,7 @@ function renderCalList() {
   if (!evs.length) { el.innerHTML = '<div class="empty-state"><i class="fa fa-calendar-xmark"></i><p>Nenhum evento neste mês.</p></div>'; return; }
   el.innerHTML = evs.map(([id,e]) => {
     const acc = e.clientId ? accounts[e.clientId] : null;
-    const color = e.source==='ativo' ? 'var(--red)' : (acc ? areaColor(acc.area) : '#888');
+    const color = e.source==='ativo' ? 'var(--red)' : e.source==='onboarding' ? OB_CAL_COLOR : (acc ? areaColor(acc.area) : '#888');
     return `<div class="card" style="display:flex;align-items:center;gap:14px;margin-bottom:8px;">
       <div style="width:8px;height:40px;border-radius:4px;background:${color};flex-shrink:0;"></div>
       <div style="flex:1;">
@@ -2357,6 +2416,10 @@ function renderOnboarding() {
         ${ce('Modelo',         row['Modelo']||'')}
         ${ce('AM',             row['AM']||'')}
         ${ce('Observação',     row['Observação']||row['Motivo']||'',              'color:var(--text-sub);')}
+        <td style="white-space:nowrap;">
+          <button class="btn btn-ghost btn-sm" title="Editar" onclick="openObEntryModal('${uploadId}',${ri})" style="margin-right:4px;"><i class="fa fa-pen"></i></button>
+          <button class="btn btn-ghost btn-sm" title="Marcar no Calendário Sales" onclick="addObToCalendar('${uploadId}',${ri})" style="color:var(--blue);"><i class="fa fa-calendar-plus"></i></button>
+        </td>
       </tr>`;
     }).join('');
 
@@ -2375,7 +2438,7 @@ function renderOnboarding() {
             <tr>
               <th>Candidato</th><th>Empresa</th><th>Setor</th><th>Função</th>
               <th>Admissão (prev.)</th><th>Onboarding</th><th>Status</th>
-              <th>Modelo</th><th>AM</th><th>Obs.</th>
+              <th>Modelo</th><th>AM</th><th>Obs.</th><th></th>
             </tr>
           </thead>
           <tbody>${rowsHtml}</tbody>
@@ -2413,6 +2476,99 @@ function updateObRowStyle(uploadId, ri, val) {
     if (i === 1) num.textContent = sim;
     if (i === 2) num.textContent = pend;
   });
+}
+     function openObEntryModal(editUploadId = null, editRi = null) {
+  const modal = document.getElementById('modal-ob-entry');
+  modal.dataset.editUploadId = editUploadId || '';
+  modal.dataset.editRi       = editRi !== null ? editRi : '';
+  const row = (editUploadId && editRi !== null)
+    ? onboardings[editUploadId]?.rows?.[editRi] : null;
+  document.getElementById('modal-ob-entry-title').textContent = row ? 'Editar Onboarding' : 'Novo Onboarding';
+  const fields = {
+    'ob-e-candidato': 'Candidato', 'ob-e-empresa': 'Empresa',
+    'ob-e-setor': 'Setor',         'ob-e-funcao': 'Função',
+    'ob-e-admissao': 'Data de Admissão (previsão)',
+    'ob-e-onboarding': 'Data Onboarding',
+    'ob-e-modelo': 'Modelo',       'ob-e-am': 'AM',
+    'ob-e-obs': 'Observação',      'ob-e-compareceu': 'Compareceu?'
+  };
+  Object.entries(fields).forEach(([elId, field]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    let val = row ? (row[field] || '') : '';
+    // converter serial Excel → ISO para inputs de data
+    if ((elId === 'ob-e-admissao' || elId === 'ob-e-onboarding') && val) {
+      const n = Number(val);
+      if (!isNaN(n) && n > 1000) {
+        const d = new Date(Math.round((n - 25569) * 86400 * 1000));
+        val = d.toISOString().split('T')[0];
+      } else if (typeof val === 'string' && val.includes('/')) {
+        const [day, mon, yr] = val.split('/');
+        val = `${yr}-${mon.padStart(2,'0')}-${day.padStart(2,'0')}`;
+      }
+    }
+    el.value = val;
+  });
+  openModal('modal-ob-entry');
+  setTimeout(() => document.getElementById('ob-e-candidato').focus(), 100);
+}
+
+async function saveObEntry() {
+  const candidato = document.getElementById('ob-e-candidato').value.trim();
+  if (!candidato) { toast('Candidato é obrigatório.', 'error'); return; }
+  const row = {
+    'Candidato':                   candidato,
+    'Empresa':                     document.getElementById('ob-e-empresa').value.trim(),
+    'Setor':                       document.getElementById('ob-e-setor').value.trim(),
+    'Função':                      document.getElementById('ob-e-funcao').value.trim(),
+    'Data de Admissão (previsão)': document.getElementById('ob-e-admissao').value,
+    'Data Onboarding':             document.getElementById('ob-e-onboarding').value,
+    'Compareceu?':                 document.getElementById('ob-e-compareceu').value,
+    'Modelo':                      document.getElementById('ob-e-modelo').value,
+    'AM':                          document.getElementById('ob-e-am').value.trim(),
+    'Observação':                  document.getElementById('ob-e-obs').value.trim(),
+  };
+  const modal = document.getElementById('modal-ob-entry');
+  const editUploadId = modal.dataset.editUploadId;
+  const editRi = modal.dataset.editRi;
+  if (editUploadId && editRi !== '') {
+    const ri = parseInt(editRi);
+    onboardings[editUploadId].rows[ri] = row;
+    await fbUpdate(`onboardings/${editUploadId}/rows/${ri}`, row);
+    toast('Onboarding atualizado!', 'success');
+  } else {
+    const id = uid();
+    const data = { rows: [row], fileName: `Manual — ${candidato}`, isManual: true, uploadedAt: Date.now() };
+    await fbSet(`onboardings/${id}`, data);
+    onboardings[id] = data;
+    toast('Onboarding adicionado!', 'success');
+  }
+  closeModal('modal-ob-entry');
+  renderOnboarding();
+}
+
+async function addObToCalendar(uploadId, ri) {
+  const row = onboardings[uploadId]?.rows?.[ri];
+  if (!row) return;
+  const dateRaw = row['Data Onboarding'];
+  let dateStr = '';
+  if (dateRaw) {
+    const n = Number(dateRaw);
+    if (!isNaN(n) && n > 1000) {
+      dateStr = new Date(Math.round((n - 25569) * 86400 * 1000)).toISOString().split('T')[0];
+    } else if (typeof dateRaw === 'string' && dateRaw.includes('/')) {
+      const [d, m, y] = dateRaw.split('/');
+      dateStr = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    } else {
+      dateStr = dateRaw;
+    }
+  }
+  if (!dateStr) { toast('Onboarding sem data definida.', 'error'); return; }
+  const title = `Onboarding — ${row['Candidato'] || ''}${row['Empresa'] ? ' · ' + row['Empresa'] : ''}`;
+  const evData = { title, date: dateStr, type: 'onboarding', obs: `${row['Função']||''} ${row['AM']?'· '+row['AM']:''}`.trim(), source: 'onboarding', color: OB_CAL_COLOR };
+  const ref = await fbPush('calEvents', evData);
+  calEvents[ref.key] = evData;
+  toast('Marcado no Calendário Sales!', 'success');
 }
 async function deleteOnboarding(id) {
   confirm('Remover esta planilha de onboarding?', async () => {
