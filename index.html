@@ -2405,7 +2405,7 @@ function renderOnboarding() {
     const items = group.items;
     const rowsHtml = items.map(({ row, ri }) => {
       const status = obStatus(row);
-      const rowBg  = status === 'sim' ? '#22c55e2e' : status === 'nao' ? '#ef44440a' : '';
+      rowBg  = status === 'sim' ? '#22c55e2e' : status === 'nao' ? '#ef44440a' : '';
       const cmp    = String(row['Compareceu?'] || '').toLowerCase();
       const selHtml = `<select class="ob-status-sel"
         onchange="saveObCell('${uploadId}',${ri},'Compareceu?',this.value);updateObRowStyle('${uploadId}',${ri},this.value);">
