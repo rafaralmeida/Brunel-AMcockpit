@@ -2475,7 +2475,7 @@ function updateObRowStyle(uploadId, ri, val) {
   const row = document.getElementById(`ob-row-${uploadId}-${ri}`);
   if (!row) return;
   const v = val.toLowerCase();
-  row.style.background = v === 'sim' ? '#22c55e0a' : (v === 'não' || v === 'nao') ? '#ef44440a' : '';
+  row.style.background = v === 'sim' ? '#22c55e2e' : (v === 'não' || v === 'nao') ? '#ef44440a' : '';
   // Atualiza sumário sem re-renderizar toda a tabela
   const allRows = Object.values(onboardings).flatMap(u => Object.values(u.rows || {}));
   const sim = allRows.filter(r => String(r['Compareceu?']||'').toLowerCase() === 'sim').length;
