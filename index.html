@@ -2286,7 +2286,14 @@ function handleObUpload(input) {
     const wb = XLSX.read(e.target.result, { type: 'array' });
     const ws = wb.Sheets[wb.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-    if (!json.length) { toast('Planilha vazia ou inválida.', 'error'); return; }
+   if (!json.length) { toast('Planilha vazia ou inválida.', 'error'); return; }
+    // Verifica se já existe uma planilha com o mesmo nome
+    const existing = Object.entries(onboardings).find(([,o]) => o.fileName === file.name);
+    if (existing) {
+      toast(`⚠ "${file.name}" já foi importada. Remova a versão anterior antes de reimportar.`, 'error');
+      input.value = '';
+      return;
+    }
     const id = uid();
     const data = { rows: json, fileName: file.name, uploadedAt: Date.now() };
     await fbSet(`onboardings/${id}`, data);
@@ -2632,10 +2639,20 @@ async function addObToCalendar(uploadId, ri) {
 }
 async function deleteOnboarding(id) {
   confirm('Remover esta planilha de onboarding?', async () => {
+    // Remove eventos do calendário associados a esta planilha
+    const rows = onboardings[id]?.rows || {};
+    const rowsArr = Array.isArray(rows) ? rows : Object.values(rows);
+    for (const row of rowsArr) {
+      if (row._calEventId && calEvents[row._calEventId]) {
+        await fbDelete(`calEvents/${row._calEventId}`);
+        delete calEvents[row._calEventId];
+      }
+    }
     await fbDelete(`onboardings/${id}`);
     delete onboardings[id];
     renderOnboarding();
-    toast('Planilha removida.', 'success');
+    renderCalendar();
+    toast('Planilha e eventos do calendário removidos.', 'success');
   });
 }
 
