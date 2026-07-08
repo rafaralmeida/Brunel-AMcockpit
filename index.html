@@ -551,6 +551,9 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
       <button class="nav-item" data-tab="tab-ativos" onclick="switchTab('tab-ativos',this)">
         <i class="fa fa-users"></i> Ativos
       </button>
+      <button class="nav-item" data-tab="tab-admissoes" onclick="switchTab('tab-admissoes',this)">
+        <i class="fa fa-file-signature"></i> Admissões
+      </button>
       <button class="nav-item" data-tab="tab-onboarding" onclick="switchTab('tab-onboarding',this)">
         <i class="fa fa-user-check"></i> Onboarding
       </button>
@@ -745,6 +748,47 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
         <div id="ativos-list"></div>
       </div>
 
+<!-- ═══════════════════════════════════════
+           ABA — ADMISSÕES
+      ═══════════════════════════════════════ -->
+      <div id="tab-admissoes" class="tab-page">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Admissões</div>
+            <div class="page-subtitle">Acompanhamento de processos admissionais</div>
+          </div>
+          <button class="btn btn-yellow" onclick="openAdmissaoModal()">
+            <i class="fa fa-plus"></i> Nova Admissão
+          </button>
+        </div>
+
+        <!-- Fluxo -->
+        <div class="flow-diagram">
+          <div class="flow-step"><span class="step-num">Etapa 1</span><span class="step-name">Mercury</span></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">Etapa 2</span><span class="step-name">Wizard</span></div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step"><span class="step-num">Etapa 3</span><span class="step-name">HT Gerada</span></div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filters-bar">
+          <input type="text" id="adm-search" placeholder="Buscar por nome, função, cliente…" oninput="renderAdmissoes()" style="flex:1;min-width:200px;"/>
+          <select id="adm-filter-status" onchange="renderAdmissoes()">
+            <option value="">Todos os status</option>
+            <option value="andamento">Em andamento</option>
+            <option value="concluido">Concluídos</option>
+          </select>
+          <select id="adm-filter-tipo" onchange="renderAdmissoes()">
+            <option value="">Todos os tipos</option>
+            <option value="Recrutado">Recrutado</option>
+            <option value="Nominee">Nominee</option>
+          </select>
+        </div>
+
+        <div id="adm-list"></div>
+      </div>
+         
       <!-- ═══════════════════════════════════════
            ABA — ONBOARDING
       ═══════════════════════════════════════ -->
@@ -854,6 +898,64 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancelar</button>
       <button class="btn btn-yellow" onclick="saveAccount()">Salvar</button>
+    </div>
+  </div>
+</div>
+     <!-- Admissão Modal -->
+<div class="modal-overlay" id="modal-admissao">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-admissao-title">Nova Admissão</span>
+      <button class="modal-close" onclick="closeModal('modal-admissao')">×</button>
+    </div>
+
+    <div class="section-title" style="margin-top:0;">Dados do Candidato</div>
+    <div class="grid-2">
+      <div class="form-group"><label>Nome Completo *</label><input id="adm-nome" placeholder="Nome completo"/></div>
+      <div class="form-group"><label>Data de Nascimento</label><input type="date" id="adm-nascimento"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>RG</label><input id="adm-rg" placeholder="00.000.000-0"/></div>
+      <div class="form-group"><label>CPF</label><input id="adm-cpf" placeholder="000.000.000-00"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>N° de Contato</label><input id="adm-tel" placeholder="(21) 9xxxx-xxxx"/></div>
+      <div class="form-group"><label>N° de Emergência</label><input id="adm-tel-emerg" placeholder="(21) 9xxxx-xxxx"/></div>
+    </div>
+    <div class="form-group"><label>Email</label><input id="adm-email" placeholder="email@exemplo.com"/></div>
+
+    <div class="section-title">Dados da Vaga</div>
+    <div class="grid-2">
+      <div class="form-group"><label>Função *</label><input id="adm-funcao" placeholder="Ex: Engenheiro de Produção"/></div>
+      <div class="form-group"><label>Salário</label><input id="adm-salario" placeholder="R$ 0.000,00"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Tipo de Contrato</label>
+        <select id="adm-contrato" onchange="toggleDiasContrato()">
+          <option value="Indeterminado">Indeterminado</option>
+          <option value="Temporário">Temporário</option>
+        </select>
+      </div>
+      <div class="form-group" id="adm-dias-wrap" style="display:none;">
+        <label>Número de Dias</label>
+        <input id="adm-dias" type="number" placeholder="Ex: 90" min="1"/>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Tipo</label>
+        <select id="adm-tipo">
+          <option value="Recrutado">Recrutado</option>
+          <option value="Nominee">Nominee</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cliente</label>
+        <select id="adm-cliente"><option value="">— Sem cliente —</option></select>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-admissao')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveAdmissao()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1388,6 +1490,7 @@ function switchTab(tabId, btn) {
   if (tabId === 'tab-ativos') renderAtivos();
   if (tabId === 'tab-onboarding') renderOnboarding();
   if (tabId === 'tab-reembolso') renderReembolso();
+  if (tabId === 'tab-admissoes') renderAdmissoes();
   if (tabId === 'tab-docs') renderDocs();
 }
 
@@ -1465,6 +1568,7 @@ function fmtDate(d) {
 ══════════════════════════════════════════════ */
 let accounts = {};
 let reembolsos = {};
+let admissoes = {};
 const OB_CAL_COLOR = '#06b6d4'; // ciano — cor padrão de onboardings no calendário
 let calEvents = {};
 let tickets = {};
@@ -1477,6 +1581,7 @@ async function renderAll() {
     fbGet('accounts').then(d => { accounts = d || {}; }),
     fbGet('onboardings').then(d => { onboardings = d || {}; }),
     fbGet('reembolsos').then(d => { reembolsos = d || {}; }),
+    fbGet('admissoes').then(d => { admissoes = d || {}; }),
     fbGet('calEvents').then(d => { calEvents = d || {}; }),
     fbGet('tickets').then(d => { tickets = d || {}; }),
     fbGet('fdCats').then(d => { fdCats = d || {}; }),
@@ -1490,6 +1595,7 @@ async function renderAll() {
   renderAtivos();
   renderOnboarding();
   renderReembolso();
+  renderAdmissoes();
   renderDocs();
 }
 
@@ -2733,6 +2839,227 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+/* ══════════════════════════════════════════════
+   ── ABA ADMISSÕES ──
+══════════════════════════════════════════════ */
+const ADM_STEPS = ['Mercury', 'Wizard', 'HT Gerada'];
+
+function toggleDiasContrato() {
+  const val = document.getElementById('adm-contrato').value;
+  document.getElementById('adm-dias-wrap').style.display = val === 'Temporário' ? 'block' : 'none';
+}
+
+function openAdmissaoModal(editId = null) {
+  const adm = editId ? admissoes[editId] : null;
+  document.getElementById('modal-admissao-title').textContent = editId ? 'Editar Admissão' : 'Nova Admissão';
+  document.getElementById('modal-admissao').dataset.editId = editId || '';
+
+  // Preencher campos
+  document.getElementById('adm-nome').value        = adm?.nome || '';
+  document.getElementById('adm-nascimento').value   = adm?.nascimento || '';
+  document.getElementById('adm-rg').value           = adm?.rg || '';
+  document.getElementById('adm-cpf').value          = adm?.cpf || '';
+  document.getElementById('adm-tel').value          = adm?.tel || '';
+  document.getElementById('adm-tel-emerg').value    = adm?.telEmerg || '';
+  document.getElementById('adm-email').value        = adm?.email || '';
+  document.getElementById('adm-funcao').value       = adm?.funcao || '';
+  document.getElementById('adm-salario').value      = adm?.salario || '';
+  document.getElementById('adm-contrato').value     = adm?.contrato || 'Indeterminado';
+  document.getElementById('adm-dias').value         = adm?.dias || '';
+  document.getElementById('adm-tipo').value         = adm?.tipo || 'Recrutado';
+  document.getElementById('adm-dias-wrap').style.display = (adm?.contrato === 'Temporário') ? 'block' : 'none';
+
+  // Popular select de clientes
+  const sel = document.getElementById('adm-cliente');
+  sel.innerHTML = '<option value="">— Sem cliente —</option>';
+  Object.entries(accounts).forEach(([id, a]) => {
+    const opt = document.createElement('option');
+    opt.value = id; opt.textContent = a.razao;
+    if (adm?.clienteId === id) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  openModal('modal-admissao');
+  setTimeout(() => document.getElementById('adm-nome').focus(), 100);
+}
+
+async function saveAdmissao() {
+  const nome   = document.getElementById('adm-nome').value.trim();
+  const funcao = document.getElementById('adm-funcao').value.trim();
+  if (!nome)   { toast('Nome é obrigatório.', 'error'); return; }
+  if (!funcao) { toast('Função é obrigatória.', 'error'); return; }
+
+  const editId = document.getElementById('modal-admissao').dataset.editId;
+  const data = {
+    nome,
+    nascimento: document.getElementById('adm-nascimento').value,
+    rg:         document.getElementById('adm-rg').value.trim(),
+    cpf:        document.getElementById('adm-cpf').value.trim(),
+    tel:        document.getElementById('adm-tel').value.trim(),
+    telEmerg:   document.getElementById('adm-tel-emerg').value.trim(),
+    email:      document.getElementById('adm-email').value.trim(),
+    funcao,
+    salario:    document.getElementById('adm-salario').value.trim(),
+    contrato:   document.getElementById('adm-contrato').value,
+    dias:       document.getElementById('adm-dias').value || '',
+    tipo:       document.getElementById('adm-tipo').value,
+    clienteId:  document.getElementById('adm-cliente').value,
+    steps:      editId ? admissoes[editId].steps : [false, false, false],
+    createdAt:  editId ? admissoes[editId].createdAt : Date.now(),
+  };
+
+  if (editId) {
+    try { await fbUpdate(`admissoes/${editId}`, data); } catch(e) { console.warn(e); }
+    admissoes[editId] = data;
+    toast('Admissão atualizada!', 'success');
+  } else {
+    const id = uid();
+    try { await fbSet(`admissoes/${id}`, data); } catch(e) { console.warn(e); }
+    admissoes[id] = data;
+    toast('Admissão criada!', 'success');
+  }
+  closeModal('modal-admissao');
+  renderAdmissoes();
+}
+
+async function toggleAdmStep(id, si) {
+  const adm = admissoes[id]; if (!adm) return;
+  const steps = [...(adm.steps || [false, false, false])];
+  steps[si] = !steps[si];
+  if (!steps[si]) { for (let i = si + 1; i < 3; i++) steps[i] = false; }
+  try { await fbUpdate(`admissoes/${id}`, { steps }); } catch(e) { console.warn(e); }
+  admissoes[id].steps = steps;
+  renderAdmissoes();
+}
+
+async function deleteAdmissao(id) {
+  confirm('Excluir esta admissão permanentemente?', async () => {
+    try { await fbDelete(`admissoes/${id}`); } catch(e) { console.warn(e); }
+    delete admissoes[id];
+    renderAdmissoes();
+    toast('Admissão excluída.', 'success');
+  });
+}
+
+function renderAdmissoes() {
+  const el = document.getElementById('adm-list'); if (!el) return;
+  const search      = (document.getElementById('adm-search')?.value || '').toLowerCase();
+  const filterSt    = document.getElementById('adm-filter-status')?.value || '';
+  const filterTipo  = document.getElementById('adm-filter-tipo')?.value   || '';
+
+  let list = Object.entries(admissoes).filter(([, adm]) => {
+    const done = adm.steps?.every(Boolean);
+    if (filterSt === 'andamento' && done)   return false;
+    if (filterSt === 'concluido' && !done)  return false;
+    if (filterTipo && adm.tipo !== filterTipo) return false;
+    if (search && ![adm.nome, adm.funcao, accounts[adm.clienteId]?.razao || '']
+        .some(v => (v||'').toLowerCase().includes(search))) return false;
+    return true;
+  }).sort((a, b) => b[1].createdAt - a[1].createdAt);
+
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><i class="fa fa-file-signature"></i><p>Nenhuma admissão encontrada.</p></div>';
+    return;
+  }
+
+  el.innerHTML = '';
+  list.forEach(([id, adm]) => {
+    const client   = adm.clienteId ? accounts[adm.clienteId] : null;
+    const benefits = client?.benefits || {};
+    const steps    = adm.steps || [false, false, false];
+    const done     = steps.every(Boolean);
+    const doneCount = steps.filter(Boolean).length;
+
+    const stepsHtml = ADM_STEPS.map((lbl, si) => {
+      const isDone   = steps[si];
+      const canClick = si === 0 || steps[si - 1];
+      return `<button class="step-btn${isDone ? ' done' : canClick ? ' active-step' : ''}"
+        onclick="toggleAdmStep('${id}',${si})"
+        ${canClick || isDone ? '' : 'disabled'}
+      >${isDone ? '✓ ' : ''}${lbl}</button>`;
+    }).join('');
+
+    const benefitsDefs = [
+      { key:'va',     label:'VA' },
+      { key:'vr',     label:'VR' },
+      { key:'saude',  label:'Saúde' },
+      { key:'seguro', label:'Seguro de Vida' },
+      { key:'vt',     label:'VT' },
+    ];
+    const benefitsHtml = client
+      ? benefitsDefs.map(d =>
+          `<div style="font-size:11px;"><span style="color:var(--text-sub);">${d.label}:</span> ${benefits[d.key] || '<span style="color:var(--text-muted)">—</span>'}</div>`
+        ).join('')
+      : '<div style="font-size:11px;color:var(--text-muted);">Sem cliente vinculado.</div>';
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '12px';
+    if (done) card.style.borderLeft = '3px solid var(--green)';
+
+    card.innerHTML = `
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:15px;font-weight:700;">${adm.nome}</div>
+          <div style="font-size:12px;color:var(--text-sub);margin-top:3px;">
+            ${adm.funcao}
+            ${client ? `· <span style="color:${areaColor(client.area)};font-weight:600;">${client.razao}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+            <span class="badge" style="background:var(--yellow-soft);color:var(--yellow);">${adm.tipo}</span>
+            <span class="badge" style="background:var(--bg-hover);">${adm.contrato}${adm.contrato==='Temporário'&&adm.dias?' — '+adm.dias+'d':''}</span>
+            ${adm.salario ? `<span class="badge" style="background:var(--bg-hover);">R$ ${adm.salario}</span>` : ''}
+            ${done ? '<span class="badge" style="background:#22c55e22;color:var(--green);">✓ Concluído</span>' : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="openAdmissaoModal('${id}')"><i class="fa fa-pen"></i> Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAdmissao('${id}')"><i class="fa fa-trash"></i></button>
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;color:var(--text-sub);margin-bottom:6px;">${doneCount}/3 etapas · clique para marcar</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${stepsHtml}</div>
+      </div>
+
+      <!-- Detalhes em duas colunas -->
+      <div class="grid-2" style="gap:16px;">
+
+        <!-- Dados do candidato -->
+        <details style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+          <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;list-style:none;">
+            <i class="fa fa-user" style="margin-right:6px;"></i> Dados do Candidato
+          </summary>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;">
+            ${adm.nascimento ? `<div style="font-size:12px;"><span style="color:var(--text-sub);">Nascimento:</span> ${new Date(adm.nascimento).toLocaleDateString('pt-BR')}</div>` : ''}
+            ${adm.cpf        ? `<div style="font-size:12px;"><span style="color:var(--text-sub);">CPF:</span> ${adm.cpf}</div>` : ''}
+            ${adm.rg         ? `<div style="font-size:12px;"><span style="color:var(--text-sub);">RG:</span> ${adm.rg}</div>` : ''}
+            ${adm.email      ? `<div style="font-size:12px;"><span style="color:var(--text-sub);">Email:</span> <a href="mailto:${adm.email}" style="color:var(--yellow);">${adm.email}</a></div>` : ''}
+            ${adm.tel        ? `<div style="font-size:12px;"><span style="color:var(--text-sub);">Contato:</span> ${adm.tel}</div>` : ''}
+            ${adm.telEmerg   ? `<div style="font-size:12px;"><span style="color:var(--text-sub);">Emergência:</span> ${adm.telEmerg}</div>` : ''}
+          </div>
+        </details>
+
+        <!-- Benefícios do cliente -->
+        <details style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;">
+          <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:0.5px;list-style:none;">
+            <i class="fa fa-star" style="margin-right:6px;"></i> Benefícios ${client ? '— '+client.razao : ''}
+          </summary>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px;">
+            ${benefitsHtml}
+            ${benefits.outros ? `<div style="font-size:11px;color:var(--text-sub);">${benefits.outros}</div>` : ''}
+          </div>
+        </details>
+
+      </div>`;
+
+    el.appendChild(card);
+  });
+}
+     
 /* ══════════════════════════════════════════════
    ── ABA REEMBOLSO ──
 ══════════════════════════════════════════════ */
