@@ -545,8 +545,8 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
       <button class="nav-item" data-tab="tab-calendar" onclick="switchTab('tab-calendar',this)">
         <i class="fa fa-calendar-days"></i> Calendário Sales
       </button>
-      <button class="nav-item" data-tab="tab-freshdesk" onclick="switchTab('tab-freshdesk',this)">
-        <i class="fa fa-ticket"></i> Freshdesk
+      <button class="nav-item" data-tab="tab-reembolso" onclick="switchTab('tab-reembolso',this)">
+        <i class="fa fa-receipt"></i> Reembolso
       </button>
       <button class="nav-item" data-tab="tab-ativos" onclick="switchTab('tab-ativos',this)">
         <i class="fa fa-users"></i> Ativos
@@ -673,42 +673,48 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
       </div>
 
       <!-- ═══════════════════════════════════════
-           ABA 3 — FRESHDESK
+           ABA 3 — REEMBOLSO
       ═══════════════════════════════════════ -->
-      <div id="tab-freshdesk" class="tab-page">
+      <div id="tab-reembolso" class="tab-page">
         <div class="page-header">
-          <div><div class="page-title">Freshdesk</div><div class="page-subtitle">Gestão de tickets internos</div></div>
-          <button class="btn btn-yellow" onclick="openTicketModal()"><i class="fa fa-plus"></i> Novo Ticket</button>
+          <div>
+            <div class="page-title">Reembolso</div>
+            <div class="page-subtitle">Controle de despesas e reembolsos</div>
+          </div>
+          <button class="btn btn-yellow" onclick="document.getElementById('rb-upload').click()">
+            <i class="fa fa-upload"></i> Importar Planilha
+          </button>
+        </div>
+        <input type="file" id="rb-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleRbUpload(this)"/>
+
+        <div class="upload-zone" id="rb-drop-zone" onclick="document.getElementById('rb-upload').click()">
+          <i class="fa fa-file-excel"></i>
+          <p>Arraste o relatório de despesas <strong>.xlsx</strong> aqui ou <span>clique para selecionar</span></p>
         </div>
 
-        <!-- Flow diagram -->
-        <div class="flow-diagram">
-          <div class="flow-step"><span class="step-num">Etapa 1</span><span class="step-name">Ticket Encaminhado Internamente</span></div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step"><span class="step-num">Etapa 2</span><span class="step-name">Ticket Respondido</span></div>
-          <div class="flow-arrow">→</div>
-          <div class="flow-step"><span class="step-num">Etapa 3</span><span class="step-name">Ticket Finalizado Internamente</span></div>
+        <!-- Sumário -->
+        <div class="grid-3" id="rb-summary" style="display:none;margin-bottom:16px;"></div>
+
+        <!-- Filtros -->
+        <div class="filters-bar" id="rb-filters" style="display:none;">
+          <input type="text" id="rb-search" placeholder="Buscar nome, cliente, PI…" oninput="renderReembolso()" style="flex:1;min-width:180px;"/>
+          <select id="rb-filter-am" onchange="renderReembolso()"><option value="">Todos os AMs</option></select>
+          <select id="rb-filter-acao" onchange="renderReembolso()">
+            <option value="">Todas as ações</option>
+            <option value="pago">Pago</option>
+            <option value="pendente">Pendente</option>
+            <option value="vencido">Vencido (+10 dias úteis)</option>
+          </select>
+          <select id="rb-filter-status" onchange="renderReembolso()">
+            <option value="">Todos os status</option>
+            <option>Pgto programado</option>
+            <option>Conferir Despesas</option>
+            <option>Validar Pi</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="clearRbFilters()"><i class="fa fa-xmark"></i> Limpar</button>
         </div>
 
-        <!-- Categories + filters -->
-        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:16px;">
-          <div class="card" style="flex:1;min-width:220px;max-width:280px;">
-            <div class="section-title" style="margin-bottom:10px;">Categorias</div>
-            <div id="fd-categories-list"></div>
-            <button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="openCatModal()"><i class="fa fa-plus"></i> Nova Categoria</button>
-          </div>
-          <div style="flex:3;min-width:280px;">
-            <div class="filters-bar">
-              <select id="fd-filter-cat" onchange="renderTickets()"><option value="">Todas as categorias</option></select>
-              <select id="fd-filter-status" onchange="renderTickets()">
-                <option value="">Todos os status</option>
-                <option value="open">Em andamento</option>
-                <option value="done">Finalizados</option>
-              </select>
-            </div>
-            <div id="tickets-list"></div>
-          </div>
-        </div>
+        <div id="rb-list"></div>
       </div>
 
       <!-- ═══════════════════════════════════════
@@ -1327,6 +1333,7 @@ function switchTab(tabId, btn) {
   if (tabId === 'tab-freshdesk') { renderTickets(); renderFdCategories(); }
   if (tabId === 'tab-ativos') renderAtivos();
   if (tabId === 'tab-onboarding') renderOnboarding();
+  if (tabId === 'tab-reembolso') renderReembolso();
   if (tabId === 'tab-docs') renderDocs();
 }
 
@@ -1403,7 +1410,7 @@ function fmtDate(d) {
    GLOBAL STATE (fetched from Firebase)
 ══════════════════════════════════════════════ */
 let accounts = {};
-let onboardings = {};
+let reembolsos = {};
 const OB_CAL_COLOR = '#06b6d4'; // ciano — cor padrão de onboardings no calendário
 let calEvents = {};
 let tickets = {};
@@ -1415,6 +1422,7 @@ async function renderAll() {
   await Promise.all([
     fbGet('accounts').then(d => { accounts = d || {}; }),
     fbGet('onboardings').then(d => { onboardings = d || {}; }),
+    fbGet('reembolsos').then(d => { reembolsos = d || {}; }),
     fbGet('calEvents').then(d => { calEvents = d || {}; }),
     fbGet('tickets').then(d => { tickets = d || {}; }),
     fbGet('fdCats').then(d => { fdCats = d || {}; }),
@@ -1427,6 +1435,7 @@ async function renderAll() {
   renderFdCategories();
   renderAtivos();
   renderOnboarding();
+  renderReembolso();
   renderDocs();
 }
 
@@ -2669,6 +2678,259 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ══════════════════════════════════════════════
+   ── ABA REEMBOLSO ──
+══════════════════════════════════════════════ */
+
+function parseRbDate(val) {
+  if (!val && val !== 0) return null;
+  const n = Number(val);
+  if (!isNaN(n) && n > 10000) {
+    return new Date(Math.round((n - 25569) * 86400 * 1000));
+  }
+  if (typeof val === 'string') {
+    // dd/mm/yy ou dd/mm/yyyy
+    const m = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (m) {
+      let yr = parseInt(m[3]);
+      if (yr < 100) yr += 2000;
+      return new Date(yr, parseInt(m[2]) - 1, parseInt(m[1]));
+    }
+  }
+  return null;
+}
+
+function fmtRbDate(val) {
+  const d = parseRbDate(val);
+  if (!d) return val || '—';
+  return d.toLocaleDateString('pt-BR');
+}
+
+function businessDaysPassed(startVal) {
+  const start = parseRbDate(startVal);
+  if (!start) return 0;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  let count = 0;
+  const cur = new Date(start);
+  cur.setHours(0,0,0,0);
+  while (cur < today) {
+    const day = cur.getDay();
+    if (day !== 0 && day !== 6) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return count;
+}
+
+function rbRowStatus(row) {
+  const acao = String(row['AÇÃO'] || row['ACAO'] || '').trim().toUpperCase();
+  if (acao === 'PAGO') return 'pago';
+  const days = businessDaysPassed(row['DATA DA SOLICITAÇÃO'] || row['DATA DA SOLICITACAO']);
+  if (days > 10) return 'vencido';
+  return 'pendente';
+}
+
+function rbRowBg(status) {
+  if (status === 'pago')    return '#22c55e2e';
+  if (status === 'vencido') return '#ef44442e';
+  return '';
+}
+
+function handleRbUpload(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (!json.length) { toast('Planilha vazia ou inválida.', 'error'); return; }
+    const existing = Object.entries(reembolsos).find(([,r]) => r.fileName === file.name);
+    if (existing) { toast(`"${file.name}" já importada. Remova antes de reimportar.`, 'error'); input.value=''; return; }
+    const id = uid();
+    const data = { rows: json, fileName: file.name, uploadedAt: Date.now() };
+    await fbSet(`reembolsos/${id}`, data);
+    reembolsos[id] = data;
+    renderReembolso();
+    toast(`${json.length} registros importados!`, 'success');
+    input.value = '';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function clearRbFilters() {
+  ['rb-search','rb-filter-am','rb-filter-acao','rb-filter-status'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderReembolso();
+}
+
+function renderReembolso() {
+  const listEl    = document.getElementById('rb-list');
+  const summaryEl = document.getElementById('rb-summary');
+  const filtersEl = document.getElementById('rb-filters');
+  if (!listEl) return;
+
+  const allRows = [];
+  Object.entries(reembolsos).forEach(([uploadId, upload]) => {
+    (upload.rows || []).forEach((row, ri) => {
+      allRows.push({ row, uploadId, ri, fileName: upload.fileName });
+    });
+  });
+
+  if (!allRows.length) {
+    if (summaryEl) summaryEl.style.display = 'none';
+    if (filtersEl) filtersEl.style.display = 'none';
+    listEl.innerHTML = '<div class="empty-state"><i class="fa fa-receipt"></i><p>Nenhum relatório importado.</p></div>';
+    return;
+  }
+
+  if (filtersEl) filtersEl.style.display = 'flex';
+
+  // Popular filtro AM
+  const amSel = document.getElementById('rb-filter-am');
+  if (amSel) {
+    const ams = [...new Set(allRows.map(({row}) => (row['Requested By']||'').trim()).filter(Boolean))].sort();
+    const curr = amSel.value;
+    amSel.innerHTML = '<option value="">Todos os AMs</option>';
+    ams.forEach(am => { amSel.innerHTML += `<option${curr===am?' selected':''}>${am}</option>`; });
+  }
+
+  // Filtros
+  const search     = (document.getElementById('rb-search')?.value || '').toLowerCase();
+  const filterAm   = document.getElementById('rb-filter-am')?.value || '';
+  const filterAcao = document.getElementById('rb-filter-acao')?.value || '';
+  const filterSt   = document.getElementById('rb-filter-status')?.value || '';
+
+  const filtered = allRows.filter(({ row }) => {
+    const status = rbRowStatus(row);
+    if (filterAm  && (row['Requested By']||'').trim() !== filterAm) return false;
+    if (filterAcao && status !== filterAcao) return false;
+    if (filterSt  && (row['STATUS']||'') !== filterSt) return false;
+    if (search    && !Object.values(row).some(v => String(v).toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  // Sumário
+  const total   = filtered.length;
+  const pagos   = filtered.filter(({row}) => rbRowStatus(row) === 'pago').length;
+  const vencidos= filtered.filter(({row}) => rbRowStatus(row) === 'vencido').length;
+  if (summaryEl) {
+    summaryEl.style.display = 'grid';
+    summaryEl.innerHTML = `
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px;font-weight:700;">${total}</div>
+        <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">Total</div>
+      </div>
+      <div class="card" style="text-align:center;border-top:3px solid var(--green);">
+        <div style="font-size:28px;font-weight:700;color:var(--green);">${pagos}</div>
+        <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">Pagos</div>
+      </div>
+      <div class="card" style="text-align:center;border-top:3px solid var(--red);">
+        <div style="font-size:28px;font-weight:700;color:var(--red);">${vencidos}</div>
+        <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">Vencidos (+10 dias úteis)</div>
+      </div>`;
+  }
+
+  listEl.innerHTML = '';
+
+  // Agrupar por upload
+  const byUpload = {};
+  filtered.forEach(item => {
+    if (!byUpload[item.uploadId]) byUpload[item.uploadId] = { fileName: item.fileName, items: [] };
+    byUpload[item.uploadId].items.push(item);
+  });
+
+  Object.entries(byUpload).forEach(([uploadId, group]) => {
+    const block = document.createElement('div');
+    block.className = 'card';
+    block.style.marginBottom = '20px';
+
+    const ce = (uploadId, ri, field, val, extra='') =>
+      `<td contenteditable="true" style="font-size:11px;${extra}"
+        onblur="saveRbCell('${uploadId}',${ri},'${field}',this.textContent.trim())"
+      >${val}</td>`;
+
+    const rowsHtml = group.items.map(({ row, ri }) => {
+      const status = rbRowStatus(row);
+      const bg     = rbRowBg(status);
+      const days   = status !== 'pago' ? businessDaysPassed(row['DATA DA SOLICITAÇÃO']) : 0;
+      return `<tr id="rb-row-${uploadId}-${ri}" style="background:${bg};">
+        ${ce(uploadId,ri,'ID',            row['ID']||'',                        'font-weight:700;')}
+        ${ce(uploadId,ri,'NOME',          row['NOME']||'')}
+        ${ce(uploadId,ri,'CLIENTE',       row['CLIENTE']||'')}
+        ${ce(uploadId,ri,'N° PI',         row['N° PI']||'')}
+        ${ce(uploadId,ri,'DATA DA SOLICITAÇÃO', fmtRbDate(row['DATA DA SOLICITAÇÃO']), 'white-space:nowrap;')}
+        ${ce(uploadId,ri,'DATA DE PREVISÃO DE PAGAMENTO', fmtRbDate(row['DATA DE PREVISÃO DE PAGAMENTO']), 'white-space:nowrap;')}
+        ${ce(uploadId,ri,'VALOR APRESENTADO', row['VALOR APRESENTADO']||'')}
+        ${ce(uploadId,ri,'SALDO A PAGAR(+)/DEVOLVER(-)', row['SALDO A PAGAR(+)/DEVOLVER(-)']||'')}
+        <td>
+          <select class="ob-status-sel" onchange="saveRbCell('${uploadId}',${ri},'AÇÃO',this.value);renderReembolso();">
+            <option value=""   ${!String(row['AÇÃO']||'').trim()       ?'selected':''}>Pendente</option>
+            <option value="PAGO" ${String(row['AÇÃO']||'').toUpperCase()==='PAGO'?'selected':''}>✓ PAGO</option>
+          </select>
+        </td>
+        ${ce(uploadId,ri,'STATUS',        row['STATUS']||'')}
+        ${ce(uploadId,ri,'OBS',           row['OBS']||'',                       'color:var(--text-sub);')}
+        ${ce(uploadId,ri,'Requested By',  row['Requested By']||'')}
+        <td style="font-size:11px;color:${days>10?'var(--red)':'var(--text-sub)'};">${status!=='pago'?days+'d úteis':'—'}</td>
+      </tr>`;
+    }).join('');
+
+    block.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <i class="fa fa-file-excel" style="color:var(--green)"></i>
+        <strong>${group.fileName}</strong>
+        <span style="font-size:11px;color:var(--text-sub);">· ${group.items.length} registro(s)</span>
+        <div style="margin-left:auto;">
+          <button class="btn btn-danger btn-sm" onclick="deleteReembolso('${uploadId}')"><i class="fa fa-trash"></i> Remover</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Nome</th><th>Cliente</th><th>N° PI</th>
+            <th>Solicitação</th><th>Previsão Pgto</th>
+            <th>Valor</th><th>Saldo</th><th>Ação</th>
+            <th>Status</th><th>OBS</th><th>AM</th><th>Dias Úteis</th>
+          </tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+    listEl.appendChild(block);
+  });
+}
+
+async function saveRbCell(uploadId, rowIdx, field, value) {
+  if (!reembolsos[uploadId]?.rows?.[rowIdx]) return;
+  reembolsos[uploadId].rows[rowIdx][field] = value;
+  try { await fbUpdate(`reembolsos/${uploadId}/rows/${rowIdx}`, { [field]: value }); }
+  catch(e) { console.warn('Firebase:', e); }
+}
+
+async function deleteReembolso(id) {
+  confirm('Remover esta planilha de reembolso?', async () => {
+    await fbDelete(`reembolsos/${id}`);
+    delete reembolsos[id];
+    renderReembolso();
+    toast('Planilha removida.', 'success');
+  });
+}
+
+// Drag & drop reembolso
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('rb-drop-zone');
+  if (zone) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0]; if (!file) return;
+      handleRbUpload({ files: [file], value: '' });
+    });
+  }
+});
+
 // Drag & drop for xlsx
 document.getElementById('xlsx-drop-zone').addEventListener('dragover', e => { e.preventDefault(); e.currentTarget.classList.add('dragover'); });
 document.getElementById('xlsx-drop-zone').addEventListener('dragleave', e => e.currentTarget.classList.remove('dragover'));
