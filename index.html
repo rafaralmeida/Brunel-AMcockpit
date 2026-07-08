@@ -2749,7 +2749,11 @@ function handleRbUpload(input) {
     if (existing) { toast(`"${file.name}" já importada. Remova antes de reimportar.`, 'error'); input.value=''; return; }
     const id = uid();
     const data = { rows: json, fileName: file.name, uploadedAt: Date.now() };
-    await fbSet(`reembolsos/${id}`, data);
+    try {
+      await fbSet(`reembolsos/${id}`, data);
+    } catch(e) {
+      console.warn('Firebase write falhou, salvando localmente:', e);
+    }
     reembolsos[id] = data;
     renderReembolso();
     toast(`${json.length} registros importados!`, 'success');
@@ -2773,7 +2777,10 @@ function renderReembolso() {
 
   const allRows = [];
   Object.entries(reembolsos).forEach(([uploadId, upload]) => {
-    (upload.rows || []).forEach((row, ri) => {
+    const rowsArr = Array.isArray(upload.rows)
+      ? upload.rows
+      : Object.values(upload.rows || {});
+    rowsArr.forEach((row, ri) => {
       allRows.push({ row, uploadId, ri, fileName: upload.fileName });
     });
   });
@@ -2910,7 +2917,7 @@ async function saveRbCell(uploadId, rowIdx, field, value) {
 
 async function deleteReembolso(id) {
   confirm('Remover esta planilha de reembolso?', async () => {
-    await fbDelete(`reembolsos/${id}`);
+    try { await fbDelete(`reembolsos/${id}`); } catch(e) { console.warn(e); }
     delete reembolsos[id];
     renderReembolso();
     toast('Planilha removida.', 'success');
