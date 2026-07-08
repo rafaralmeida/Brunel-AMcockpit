@@ -681,9 +681,14 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
             <div class="page-title">Reembolso</div>
             <div class="page-subtitle">Controle de despesas e reembolsos</div>
           </div>
-          <button class="btn btn-yellow" onclick="document.getElementById('rb-upload').click()">
-            <i class="fa fa-upload"></i> Importar Planilha
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" onclick="openRbEntryModal()">
+              <i class="fa fa-plus"></i> Novo Reembolso
+            </button>
+            <button class="btn btn-yellow" onclick="document.getElementById('rb-upload').click()">
+              <i class="fa fa-upload"></i> Importar Planilha
+            </button>
+          </div>
         </div>
         <input type="file" id="rb-upload" accept=".xlsx,.xls" style="display:none;" onchange="handleRbUpload(this)"/>
 
@@ -849,6 +854,55 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-account')">Cancelar</button>
       <button class="btn btn-yellow" onclick="saveAccount()">Salvar</button>
+    </div>
+  </div>
+</div>
+     <!-- Reembolso Entry Modal -->
+<div class="modal-overlay" id="modal-rb-entry">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-rb-entry-title">Novo Reembolso</span>
+      <button class="modal-close" onclick="closeModal('modal-rb-entry')">×</button>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>ID</label><input id="rb-e-id" placeholder="Nº do processo"/></div>
+      <div class="form-group"><label>Nome *</label><input id="rb-e-nome" placeholder="Nome do colaborador"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Cliente</label><input id="rb-e-cliente" placeholder="Empresa cliente"/></div>
+      <div class="form-group"><label>N° PI</label><input id="rb-e-pi" placeholder="BES-PI-XXXX-XXXX"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Data da Solicitação</label><input type="date" id="rb-e-solicitacao"/></div>
+      <div class="form-group"><label>Previsão de Pagamento</label><input type="date" id="rb-e-previsao"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Valor Apresentado</label><input id="rb-e-valor" placeholder="0,00"/></div>
+      <div class="form-group"><label>Saldo a Pagar/Devolver</label><input id="rb-e-saldo" placeholder="0,00"/></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>Status</label>
+        <select id="rb-e-status">
+          <option value="">Selecione…</option>
+          <option>Pgto programado</option>
+          <option>Conferir Despesas</option>
+          <option>Validar Pi</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Ação</label>
+        <select id="rb-e-acao">
+          <option value="">Pendente</option>
+          <option value="PAGO">✓ PAGO</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>AM (Requested By)</label><input id="rb-e-am" placeholder="Nome do AM"/></div>
+      <div class="form-group"><label>OBS</label><input id="rb-e-obs" placeholder="Observações…"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-rb-entry')">Cancelar</button>
+      <button class="btn btn-yellow" onclick="saveRbEntry()">Salvar</button>
     </div>
   </div>
 </div>
@@ -2881,6 +2935,7 @@ function renderReembolso() {
         ${ce(uploadId,ri,'OBS',           row['OBS']||'',                       'color:var(--text-sub);')}
         ${ce(uploadId,ri,'Requested By',  row['Requested By']||'')}
         <td style="font-size:11px;color:${days>10?'var(--red)':'var(--text-sub)'};">${status!=='pago'?days+'d úteis':'—'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="openRbEntryModal('${uploadId}',${ri})"><i class="fa fa-pen"></i></button></td>
       </tr>`;
     }).join('');
 
@@ -2899,7 +2954,7 @@ function renderReembolso() {
             <th>ID</th><th>Nome</th><th>Cliente</th><th>N° PI</th>
             <th>Solicitação</th><th>Previsão Pgto</th>
             <th>Valor</th><th>Saldo</th><th>Ação</th>
-            <th>Status</th><th>OBS</th><th>AM</th><th>Dias Úteis</th>
+            <th>Status</th><th>OBS</th><th>AM</th><th>Dias Úteis</th><th></th>
           </tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
@@ -2908,6 +2963,87 @@ function renderReembolso() {
   });
 }
 
+     function openRbEntryModal(editUploadId = null, editRi = null) {
+  const modal = document.getElementById('modal-rb-entry');
+  modal.dataset.editUploadId = editUploadId || '';
+  modal.dataset.editRi       = editRi !== null ? editRi : '';
+  const row = (editUploadId && editRi !== null)
+    ? (Array.isArray(reembolsos[editUploadId]?.rows)
+        ? reembolsos[editUploadId].rows[editRi]
+        : Object.values(reembolsos[editUploadId]?.rows || {})[editRi])
+    : null;
+  document.getElementById('modal-rb-entry-title').textContent = row ? 'Editar Reembolso' : 'Novo Reembolso';
+  document.getElementById('rb-e-id').value         = row?.['ID'] || '';
+  document.getElementById('rb-e-nome').value        = row?.['NOME'] || '';
+  document.getElementById('rb-e-cliente').value     = row?.['CLIENTE'] || '';
+  document.getElementById('rb-e-pi').value          = row?.['N° PI'] || '';
+  document.getElementById('rb-e-valor').value       = row?.['VALOR APRESENTADO'] || '';
+  document.getElementById('rb-e-saldo').value       = row?.['SALDO A PAGAR(+)/DEVOLVER(-)'] || '';
+  document.getElementById('rb-e-status').value      = row?.['STATUS'] || '';
+  document.getElementById('rb-e-acao').value        = row?.['AÇÃO'] || '';
+  document.getElementById('rb-e-am').value          = row?.['Requested By'] || '';
+  document.getElementById('rb-e-obs').value         = row?.['OBS'] || '';
+  // Datas — converter serial ou dd/mm para input date
+  ['solicitacao','previsao'].forEach((fid, i) => {
+    const field = i === 0 ? 'DATA DA SOLICITAÇÃO' : 'DATA DE PREVISÃO DE PAGAMENTO';
+    const val   = row?.[field] || '';
+    let iso = '';
+    const n = Number(val);
+    if (!isNaN(n) && n > 10000) {
+      iso = new Date(Math.round((n - 25569) * 86400 * 1000)).toISOString().split('T')[0];
+    } else if (typeof val === 'string' && val.includes('/')) {
+      const [d, m, y] = val.split('/');
+      let yr = parseInt(y); if (yr < 100) yr += 2000;
+      iso = `${yr}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    } else { iso = val; }
+    document.getElementById('rb-e-' + fid).value = iso;
+  });
+  openModal('modal-rb-entry');
+  setTimeout(() => document.getElementById('rb-e-nome').focus(), 100);
+}
+
+async function saveRbEntry() {
+  const nome = document.getElementById('rb-e-nome').value.trim();
+  if (!nome) { toast('Nome é obrigatório.', 'error'); return; }
+  const row = {
+    'ID':                              document.getElementById('rb-e-id').value.trim(),
+    'NOME':                            nome,
+    'CLIENTE':                         document.getElementById('rb-e-cliente').value.trim(),
+    'N° PI':                           document.getElementById('rb-e-pi').value.trim(),
+    'DATA DA SOLICITAÇÃO':             document.getElementById('rb-e-solicitacao').value,
+    'DATA DE PREVISÃO DE PAGAMENTO':   document.getElementById('rb-e-previsao').value,
+    'VALOR APRESENTADO':               document.getElementById('rb-e-valor').value.trim(),
+    'SALDO A PAGAR(+)/DEVOLVER(-)':    document.getElementById('rb-e-saldo').value.trim(),
+    'STATUS':                          document.getElementById('rb-e-status').value,
+    'AÇÃO':                            document.getElementById('rb-e-acao').value,
+    'Requested By':                    document.getElementById('rb-e-am').value.trim(),
+    'OBS':                             document.getElementById('rb-e-obs').value.trim(),
+  };
+  const modal        = document.getElementById('modal-rb-entry');
+  const editUploadId = modal.dataset.editUploadId;
+  const editRi       = modal.dataset.editRi;
+
+  if (editUploadId && editRi !== '') {
+    const ri = parseInt(editRi);
+    const rowsArr = Array.isArray(reembolsos[editUploadId].rows)
+      ? reembolsos[editUploadId].rows
+      : Object.values(reembolsos[editUploadId].rows || {});
+    rowsArr[ri] = row;
+    if (Array.isArray(reembolsos[editUploadId].rows)) {
+      reembolsos[editUploadId].rows[ri] = row;
+    }
+    try { await fbUpdate(`reembolsos/${editUploadId}/rows/${ri}`, row); } catch(e) { console.warn(e); }
+    toast('Reembolso atualizado!', 'success');
+  } else {
+    const id   = uid();
+    const data = { rows: [row], fileName: `Manual — ${nome}`, isManual: true, uploadedAt: Date.now() };
+    try { await fbSet(`reembolsos/${id}`, data); } catch(e) { console.warn(e); }
+    reembolsos[id] = data;
+    toast('Reembolso adicionado!', 'success');
+  }
+  closeModal('modal-rb-entry');
+  renderReembolso();
+}
 async function saveRbCell(uploadId, rowIdx, field, value) {
   if (!reembolsos[uploadId]?.rows?.[rowIdx]) return;
   reembolsos[uploadId].rows[rowIdx][field] = value;
