@@ -1224,6 +1224,20 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
       <button class="modal-close" onclick="closeModal('modal-admin')">×</button>
     </div>
     <div id="admin-users-list"></div>
+
+    <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+      <div class="section-title" style="margin-bottom:10px;">Adicionar Novo Perfil</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:160px;margin-bottom:0;">
+          <label>Nome do usuário</label>
+          <input id="new-user-name" placeholder="Ex: M.SILVA" style="text-transform:uppercase;"/>
+        </div>
+        <button class="btn btn-yellow" onclick="addNewUser()">
+          <i class="fa fa-plus"></i> Adicionar
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--text-sub);margin-top:6px;">O novo usuário definirá a própria senha no primeiro acesso.</div>
+    </div>
   </div>
 </div>
 
@@ -1455,17 +1469,42 @@ async function openAdmin() {
     row.className = 'user-row';
     row.innerHTML = `
       <div class="user-avatar">${(u.name||key)[0]}</div>
-      <div style="flex:1;"><div style="font-weight:600;">${u.name||key}</div>
+      <div style="flex:1;">
+        <div style="font-weight:600;">${u.name||key}</div>
         <div style="font-size:11px;color:var(--text-sub);">${u.mustSetPass ? '⚠ Senha não definida' : '✓ Senha ativa'}</div>
       </div>
-      ${key !== 'ADMIN' ? `<button class="btn btn-ghost btn-sm" onclick="resetUserPass('${key}')"><i class="fa fa-rotate-left"></i> Resetar Senha</button>` : ''}
+      ${key !== 'ADMIN' ? `
+        <button class="btn btn-ghost btn-sm" onclick="resetUserPass('${key}')"><i class="fa fa-rotate-left"></i> Resetar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteUser('${key}')"><i class="fa fa-trash"></i></button>
+      ` : '<span style="font-size:11px;color:var(--text-sub);">Admin</span>'}
     `;
     el.appendChild(row);
   });
   openModal('modal-admin');
 }
 
-async function resetUserPass(key) {
+async function addNewUser() {
+  const nameRaw = document.getElementById('new-user-name').value.trim().toUpperCase();
+  if (!nameRaw) { toast('Digite o nome do usuário.', 'error'); return; }
+  const key = toKey(nameRaw);
+  const users = await loadUsers();
+  if (users[key]) { toast(`Usuário "${nameRaw}" já existe.`, 'error'); return; }
+  users[key] = { name: nameRaw, passwordHash: null, mustSetPass: true };
+  await saveUsers(users);
+  document.getElementById('new-user-name').value = '';
+  toast(`Usuário "${nameRaw}" criado. Ele definirá a senha no primeiro acesso.`, 'success');
+  openAdmin();
+}
+
+async function deleteUser(key) {
+  confirm(`Excluir o usuário "${key}"? Esta ação não pode ser desfeita.`, async () => {
+    const users = await loadUsers();
+    delete users[key];
+    await saveUsers(users);
+    toast('Usuário excluído.', 'success');
+    openAdmin();
+  });
+}
   const users = await loadUsers();
   if (users[key]) {
     users[key].passwordHash = null;
