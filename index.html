@@ -469,16 +469,7 @@ svg#org-svg line { stroke: var(--border); stroke-width: 1.5; }
     <div class="form-group">
       <label>Usuário</label>
       <select id="login-user">
-        <option value="">Selecione…</option>
-        <option>ADMIN</option>
-        <option>D.DINIZ</option>
-        <option>J.TROTTE</option>
-        <option>C.BALDOTTO</option>
-        <option>C.LAGOA</option>
-        <option>LUIZ.O</option>
-        <option>LIVIA.O</option>
-        <option>R.ALMEIDA</option>
-        <option>S.BRAGA</option>
+        <option value="">Carregando usuários…</option>
       </select>
     </div>
     <div class="form-group">
@@ -3564,9 +3555,29 @@ function populateClientSelects() {
 /* ══════════════════════════════════════════════
    BOOT
 ══════════════════════════════════════════════ */
-function showLogin(errorMsg) {
+async function showLogin(errorMsg) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+  // Popular select dinamicamente a partir dos usuários no Firebase
+  try {
+    const users = await loadUsers();
+    const sel = document.getElementById('login-user');
+    const curr = sel.value;
+    sel.innerHTML = '<option value="">Selecione…</option>';
+    Object.entries(users)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name))
+      .forEach(([, u]) => {
+        const opt = document.createElement('option');
+        opt.value = u.name;
+        opt.textContent = u.name;
+        if (curr === u.name) opt.selected = true;
+        sel.appendChild(opt);
+      });
+  } catch(e) {
+    console.warn('Não foi possível carregar usuários:', e);
+    const sel = document.getElementById('login-user');
+    sel.innerHTML = '<option value="">Selecione…</option>';
+  }
   if (errorMsg) {
     document.getElementById('login-error').textContent = errorMsg;
     document.getElementById('login-error').style.color = 'orange';
